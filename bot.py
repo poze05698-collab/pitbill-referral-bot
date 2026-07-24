@@ -352,4 +352,58 @@ def saldo(message):
         message,
         f"💰 Seu saldo é: R$ {saldo:.2f}"
     )
+
+
+@bot.message_handler(commands=['adicionar'])
+def adicionar(message):
+
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(
+            message,
+            "❌ Você não tem permissão."
+        )
+        return
+
+    try:
+        dados = message.text.split()
+
+        usuario_id = int(dados[1])
+        valor = float(dados[2])
+
+    except:
+        bot.reply_to(
+            message,
+            "Use assim:\n/adicionar ID VALOR"
+        )
+        return
+
+    cursor.execute(
+        "SELECT saldo FROM usuarios WHERE id=?",
+        (usuario_id,)
+    )
+
+    usuario = cursor.fetchone()
+
+    if not usuario:
+        bot.reply_to(
+            message,
+            "❌ Usuário não encontrado."
+        )
+        return
+
+    novo_saldo = usuario[0] + valor
+
+    cursor.execute(
+        "UPDATE usuarios SET saldo=? WHERE id=?",
+        (novo_saldo, usuario_id)
+    )
+
+    conn.commit()
+
+    bot.reply_to(
+        message,
+        f"✅ Saldo adicionado.\n\nNovo saldo: R$ {novo_saldo:.2f}"
+    )
+
+
 bot.infinity_polling(skip_pending=True)
