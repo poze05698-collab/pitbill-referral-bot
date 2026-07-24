@@ -113,6 +113,8 @@ def meusdados(message):
 """
 
     bot.reply_to(message, texto, parse_mode="HTML")
+
+
 @bot.message_handler(commands=['pix'])
 def pix(message):
 
@@ -136,6 +138,6 @@ def pix(message):
 
     bot.reply_to(
         message,
-        "✅ Sua chave Pix foi cadastrada com sucesso!"
+        "✅ Sua chave Pix foi cadastrada com
     )
 bot.infinity_polling(skip_pending=True)
