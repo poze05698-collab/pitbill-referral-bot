@@ -112,7 +112,8 @@ def meusdados(message):
 <code>{chave}</code>
 """
 
-    bot.reply_to(message, texto, parse_mode="HTML")@bot.message_handler(commands=['pix'])
+    bot.reply_to(message, texto, parse_mode="HTML")
+@bot.message_handler(commands=['pix'])
 def pix(message):
 
     args = message.text.split(maxsplit=1)
