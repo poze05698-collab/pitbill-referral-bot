@@ -215,7 +215,7 @@ def pedidos(message):
     texto = "📋 Saques pendentes:\n\n"
 
     for saque in pedidos:
-    texto += (
+        texto += (
         f"ID do saque: {saque[0]}\n"
         f"ID do usuário: {saque[1]}\n"
         f"Valor: R$ {saque[2]:.2f}\n\n"
