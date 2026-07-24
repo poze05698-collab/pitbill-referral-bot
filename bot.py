@@ -141,5 +141,56 @@ def pix(message):
         "✅ Sua chave Pix foi cadastrada com sucesso!"
     )
 
+@bot.message_handler(commands=['saque'])
+def saque(message):
 
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT saldo, pix FROM usuarios WHERE id=?",
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        bot.reply_to(message, "Use /start primeiro.")
+        return
+
+    saldo, pix = user
+
+    if saldo < VALOR_MINIMO_SAQUE:
+        falta = VALOR_MINIMO_SAQUE - saldo
+
+        bot.reply_to(
+            message,
+            f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
+        )
+        return
+
+    if pix == "":
+        bot.reply_to(
+            message,
+            "❌ Cadastre sua chave Pix primeiro usando:\n\n/pix sua_chave"
+        )
+        return
+
+    cursor.execute(
+        """
+        INSERT INTO saques(usuario, valor, status)
+        VALUES(?,?,?)
+        """,
+        (
+            user_id,
+            saldo,
+            "PENDENTE"
+        )
+    )
+
+    conn.commit()
+
+    bot.reply_to(
+        message,
+        "✅ Seu pedido de saque foi enviado para análise."
+    )
 bot.infinity_polling(skip_pending=True)
