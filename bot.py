@@ -141,22 +141,6 @@ def pix(message):
         "✅ Sua chave Pix foi cadastrada com sucesso!"
     )
 
-@bot.message_handler(commands=['saque'])
-def saque(message):
-
-    user_id = message.from_user.id
-
-    cursor.execute(
-        "SELECT saldo, pix FROM usuarios WHERE id=?",
-        (user_id,)
-    )
-
-    user = cursor.fetchone()
-
-    if not user:
-        bot.reply_to(message, "Use /start primeiro.")
-        return
-
    @bot.message_handler(commands=['saque'])
 def saque(message):
 
