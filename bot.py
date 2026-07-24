@@ -157,7 +157,26 @@ def saque(message):
         bot.reply_to(message, "Use /start primeiro.")
         return
 
-   saldo, pix = user
+   @bot.message_handler(commands=['saque'])
+def saque(message):
+
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT saldo, pix FROM usuarios WHERE id=?",
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        bot.reply_to(
+            message,
+            "Use /start primeiro."
+        )
+        return
+
+    saldo, pix = user
 
     cursor.execute(
         "SELECT * FROM saques WHERE usuario=? AND status=?",
@@ -207,7 +226,6 @@ def saque(message):
         message,
         "✅ Seu pedido de saque foi enviado para análise."
     )
-
 @bot.message_handler(commands=['pedidos'])
 def pedidos(message):
 
