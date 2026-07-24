@@ -138,5 +138,8 @@ def pix(message):
 
     bot.reply_to(
         message,
-        "✅ Sua chave Pix foi cadastrada com
+        "✅ Sua chave Pix foi cadastrada com sucesso!"
+    )
+
+
 bot.infinity_polling(skip_pending=True)
