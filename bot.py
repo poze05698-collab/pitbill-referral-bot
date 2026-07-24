@@ -171,14 +171,15 @@ if pedido:
         "❌ Você já possui um saque pendente de análise."
     )
     return
-    if saldo < VALOR_MINIMO_SAQUE:
-        falta = VALOR_MINIMO_SAQUE - saldo
 
-        bot.reply_to(
-            message,
-            f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
-        )
-        return
+if saldo < VALOR_MINIMO_SAQUE:
+    falta = VALOR_MINIMO_SAQUE - saldo
+
+    bot.reply_to(
+        message,
+        f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
+    )
+    return
 
     if pix == "":
         bot.reply_to(
