@@ -266,6 +266,11 @@ def aprovar(message):
 
     conn.commit()
 
+    bot.send_message(
+    usuario,
+    f"✅ Seu saque de R$ {valor:.2f} foi aprovado!"
+)
+    
     bot.reply_to(
         message,
         f"✅ Saque ID {saque_id} aprovado."
