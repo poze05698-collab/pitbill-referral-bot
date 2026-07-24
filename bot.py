@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 
 # ========== CONFIGURAÇÃO ==========
-TOKEN = 'SEU_TOKEN_AQUI'  # Vamos trocar depois
+TOKEN = '8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg'  # Vamos trocar depois
 bot = telebot.TeleBot(TOKEN)
 
 # Banco de dados simples (dicionário)
