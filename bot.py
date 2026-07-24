@@ -81,5 +81,36 @@ def grupo(message):
 
 
 print("Bot online!")
+@bot.message_handler(commands=['meusdados'])
+def meusdados(message):
 
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT saldo, convidados, pix FROM usuarios WHERE id=?",
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        bot.reply_to(message, "Use /start primeiro.")
+        return
+
+    saldo, convidados, pix = user
+
+    chave = pix if pix else "Não cadastrada"
+
+    texto = f"""
+<b>📊 Seus Dados</b>
+
+💰 Saldo: R$ {saldo:.2f}
+
+👥 Indicados: {convidados}
+
+💳 Pix:
+<code>{chave}</code>
+"""
+
+    bot.reply_to(message, texto, parse_mode="HTML")
 bot.infinity_polling(skip_pending=True)
