@@ -326,4 +326,30 @@ def rejeitar(message):
         message,
         f"❌ Saque ID {saque_id} rejeitado."
     )
+
+@bot.message_handler(commands=['saldo'])
+def saldo(message):
+
+    user_id = message.from_user.id
+
+    cursor.execute(
+        "SELECT saldo FROM usuarios WHERE id=?",
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    if not user:
+        bot.reply_to(
+            message,
+            "Use /start primeiro."
+        )
+        return
+
+    saldo = user[0]
+
+    bot.reply_to(
+        message,
+        f"💰 Seu saldo é: R$ {saldo:.2f}"
+    )
 bot.infinity_polling(skip_pending=True)
