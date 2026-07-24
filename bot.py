@@ -270,4 +270,50 @@ def aprovar(message):
         message,
         f"✅ Saque ID {saque_id} aprovado."
     )
+
+@bot.message_handler(commands=['rejeitar'])
+def rejeitar(message):
+
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ Você não tem permissão.")
+        return
+
+    try:
+        saque_id = int(message.text.split()[1])
+    except:
+        bot.reply_to(
+            message,
+            "Use assim:\n/rejeitar ID_DO_SAQUE"
+        )
+        return
+
+    cursor.execute(
+        "SELECT status FROM saques WHERE id=?",
+        (saque_id,)
+    )
+
+    saque = cursor.fetchone()
+
+    if not saque:
+        bot.reply_to(message, "❌ Saque não encontrado.")
+        return
+
+    if saque[0] != "PENDENTE":
+        bot.reply_to(
+            message,
+            "❌ Esse saque já foi processado."
+        )
+        return
+
+    cursor.execute(
+        "UPDATE saques SET status=? WHERE id=?",
+        ("REJEITADO", saque_id)
+    )
+
+    conn.commit()
+
+    bot.reply_to(
+        message,
+        f"❌ Saque ID {saque_id} rejeitado."
+    )
 bot.infinity_polling(skip_pending=True)
