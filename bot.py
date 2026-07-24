@@ -157,29 +157,30 @@ def saque(message):
         bot.reply_to(message, "Use /start primeiro.")
         return
 
-    saldo, pix = user
-cursor.execute(
-    "SELECT * FROM saques WHERE usuario=? AND status=?",
-    (user_id, "PENDENTE")
-)
+   saldo, pix = user
 
-pedido = cursor.fetchone()
-
-if pedido:
-    bot.reply_to(
-        message,
-        "❌ Você já possui um saque pendente de análise."
+    cursor.execute(
+        "SELECT * FROM saques WHERE usuario=? AND status=?",
+        (user_id, "PENDENTE")
     )
-    return
 
-if saldo < VALOR_MINIMO_SAQUE:
-    falta = VALOR_MINIMO_SAQUE - saldo
+    pedido = cursor.fetchone()
 
-    bot.reply_to(
-        message,
-        f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
-    )
-    return
+    if pedido:
+        bot.reply_to(
+            message,
+            "❌ Você já possui um saque pendente de análise."
+        )
+        return
+
+    if saldo < VALOR_MINIMO_SAQUE:
+        falta = VALOR_MINIMO_SAQUE - saldo
+
+        bot.reply_to(
+            message,
+            f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
+        )
+        return
 
     if pix == "":
         bot.reply_to(
