@@ -158,7 +158,19 @@ def saque(message):
         return
 
     saldo, pix = user
+cursor.execute(
+    "SELECT * FROM saques WHERE usuario=? AND status=?",
+    (user_id, "PENDENTE")
+)
 
+pedido = cursor.fetchone()
+
+if pedido:
+    bot.reply_to(
+        message,
+        "❌ Você já possui um saque pendente de análise."
+    )
+    return
     if saldo < VALOR_MINIMO_SAQUE:
         falta = VALOR_MINIMO_SAQUE - saldo
 
