@@ -264,6 +264,11 @@ def aprovar(message):
         ("APROVADO", saque_id)
     )
 
+cursor.execute(
+    "UPDATE usuarios SET saldo = saldo - ? WHERE id=?",
+    (valor, usuario)
+)
+    
     conn.commit()
 
     bot.send_message(
