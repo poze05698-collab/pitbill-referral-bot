@@ -113,4 +113,29 @@ def meusdados(message):
 """
 
     bot.reply_to(message, texto, parse_mode="HTML")
+    @bot.message_handler(commands=['pix'])
+def pix(message):
+
+    args = message.text.split(maxsplit=1)
+
+    if len(args) < 2:
+        bot.reply_to(
+            message,
+            "Use assim:\n\n/pix sua_chave_pix"
+        )
+        return
+
+    chave = args[1].strip()
+
+    cursor.execute(
+        "UPDATE usuarios SET pix=? WHERE id=?",
+        (chave, message.from_user.id)
+    )
+
+    conn.commit()
+
+    bot.reply_to(
+        message,
+        "✅ Sua chave Pix foi cadastrada com sucesso!"
+    )
 bot.infinity_polling(skip_pending=True)
