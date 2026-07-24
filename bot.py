@@ -193,4 +193,33 @@ def saque(message):
         message,
         "✅ Seu pedido de saque foi enviado para análise."
     )
+
+@bot.message_handler(commands=['pedidos'])
+def pedidos(message):
+
+    if message.from_user.id != ADMIN_ID:
+        bot.reply_to(message, "❌ Você não tem permissão.")
+        return
+
+    cursor.execute(
+        "SELECT id, usuario, valor FROM saques WHERE status=?",
+        ("PENDENTE",)
+    )
+
+    pedidos = cursor.fetchall()
+
+    if not pedidos:
+        bot.reply_to(message, "Não existem saques pendentes.")
+        return
+
+    texto = "📋 Saques pendentes:\n\n"
+
+    for saque in pedidos:
+        texto += (
+            f"ID: {saque[0]}\n"
+            f"Usuário: {saque[1]}\n"
+            f"Valor: R$ {saque[2]:.2f}\n\n"
+        )
+
+    bot.reply_to(message, texto)
 bot.infinity_polling(skip_pending=True)
