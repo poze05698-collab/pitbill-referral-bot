@@ -312,17 +312,17 @@ def rejeitar(message):
         return
 
     cursor.execute(
-        "SELECT status FROM saques WHERE id=?",
-        (saque_id,)
-    )
+    "SELECT usuario, valor, status FROM saques WHERE id=?",
+    (saque_id,)
+)
 
-    saque = cursor.fetchone()
+saque = cursor.fetchone()
 
     if not saque:
         bot.reply_to(message, "❌ Saque não encontrado.")
         return
-
-    if saque[0] != "PENDENTE":
+usuario, valor, status = saque
+    if status != "PENDENTE":
         bot.reply_to(
             message,
             "❌ Esse saque já foi processado."
