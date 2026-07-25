@@ -1,428 +1,123 @@
 import telebot
-from config import *
+
+from config import TOKEN
 from database import conn, cursor
 
-bot = telebot.TeleBot(TOKEN)
+from usuario import registrar_usuario
+from admin import registrar_admin
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.from_user.id
-    nome = message.from_user.first_name
+# ==========================================
+# INICIAR BOT
+# ==========================================
 
-    cursor.execute("SELECT * FROM usuarios WHERE id=?", (user_id,))
-    usuario = cursor.fetchone()
+bot = telebot.TeleBot(
+    TOKEN,
+    parse_mode="HTML"
+)
 
-    if usuario is None:
+# ==========================================
+# REGISTRAR MÓDULOS
+# ==========================================
 
-        args = message.text.split()
+registrar_usuario(bot)
+registrar_admin(bot)
 
-        convidado_por = None
+# ==========================================
+# COMANDO PING
+# ==========================================
 
-        if len(args) > 1:
-            if args[1].startswith("convite_"):
-                convidado_por = int(args[1].replace("convite_", ""))
+@bot.message_handler(commands=["ping"])
+def ping(message):
 
-        cursor.execute(
-            """
-            INSERT INTO usuarios(id,nome,saldo,pix,convidados,convidado_por)
-            VALUES(?,?,?,?,?,?)
-            """,
-            (
-                user_id,
-                nome,
-                0,
-                "",
-                0,
-                convidado_por
-            )
-        )
+    bot.reply_to(
+        message,
+        "🏓 Pong!"
+    )
 
-        conn.commit()
+# ==========================================
+# AJUDA
+# ==========================================
 
-        if convidado_por and convidado_por != user_id:
+@bot.message_handler(commands=["help"])
+def ajuda(message):
 
-            cursor.execute(
-                "UPDATE usuarios SET saldo = saldo + ?, convidados = convidados + 1 WHERE id=?",
-                (VALOR_POR_CONVIDADO, convidado_por)
-            )
-
-            conn.commit()
-
-    link = f"https://t.me/{bot.get_me().username}?start=convite_{user_id}"
-
-    texto = f"""
-<b>🎁 Programa de Indicação</b>
-
-Olá <b>{nome}</b>!
-
-💰 Ganhe R$ {VALOR_POR_CONVIDADO:.2f} para cada amigo indicado.
-
-🔗 Seu link:
-
-<code>{link}</code>
+    texto = """
+🤖 Bot de Indicações
 
 Comandos:
 
-/meusdados
-/regras
-/grupo
-/saque
+/start
+/help
+
+Caso tenha dúvidas,
+entre em contato com o suporte.
 """
 
-    bot.reply_to(message, texto, parse_mode="HTML")
-
-
-@bot.message_handler(commands=['grupo'])
-def grupo(message):
-    bot.reply_to(
-        message,
-        GRUPO_LINK
+    bot.send_message(
+        message.chat.id,
+        texto
     )
 
+# ==========================================
+# BLOQUEIO
+# ==========================================
 
-print("Bot online!")
-@bot.message_handler(commands=['meusdados'])
-def meusdados(message):
-
-    user_id = message.from_user.id
-
-    cursor.execute(
-        "SELECT saldo, convidados, pix FROM usuarios WHERE id=?",
-        (user_id,)
-    )
-
-    user = cursor.fetchone()
-
-    if not user:
-        bot.reply_to(message, "Use /start primeiro.")
-        return
-
-    saldo, convidados, pix = user
-
-    chave = pix if pix else "Não cadastrada"
-
-    texto = f"""
-<b>📊 Seus Dados</b>
-
-💰 Saldo: R$ {saldo:.2f}
-
-👥 Indicados: {convidados}
-
-💳 Pix:
-<code>{chave}</code>
-"""
-
-    bot.reply_to(message, texto, parse_mode="HTML")
-
-
-@bot.message_handler(commands=['pix'])
-def pix(message):
-
-    args = message.text.split(maxsplit=1)
-
-    if len(args) < 2:
-        bot.reply_to(
-            message,
-            "Use assim:\n\n/pix sua_chave_pix"
-        )
-        return
-
-    chave = args[1].strip()
-
-    cursor.execute(
-        "UPDATE usuarios SET pix=? WHERE id=?",
-        (chave, message.from_user.id)
-    )
-
-    conn.commit()
-
-    bot.reply_to(
-        message,
-        "✅ Sua chave Pix foi cadastrada com sucesso!"
-    )
-
-@bot.message_handler(commands=['saque'])
-def saque(message):
-
-    user_id = message.from_user.id
-
-    cursor.execute(
-        "SELECT saldo, pix FROM usuarios WHERE id=?",
-        (user_id,)
-    )
-
-    user = cursor.fetchone()
-
-    if not user:
-        bot.reply_to(message, "Use /start primeiro.")
-        return
-
-    saldo, pix = user
-
-    cursor.execute(
-        "SELECT * FROM saques WHERE usuario=? AND status=?",
-        (user_id, "PENDENTE")
-    )
-
-    pedido = cursor.fetchone()
-
-    if pedido:
-        bot.reply_to(
-            message,
-            "❌ Você já possui um saque pendente de análise."
-        )
-        return
-
-    if saldo < VALOR_MINIMO_SAQUE:
-        falta = VALOR_MINIMO_SAQUE - saldo
-
-        bot.reply_to(
-            message,
-            f"❌ Você ainda não pode sacar.\n\nFaltam R$ {falta:.2f}."
-        )
-        return
-
-    if pix == "":
-        bot.reply_to(
-            message,
-            "❌ Cadastre sua chave Pix primeiro usando:\n\n/pix sua_chave"
-        )
-        return
+@bot.message_handler(func=lambda m: True)
+def verificar_bloqueio(message):
 
     cursor.execute(
         """
-        INSERT INTO saques(usuario, valor, status)
-        VALUES(?,?,?)
+        SELECT bloqueado
+        FROM usuarios
+        WHERE id=?
         """,
-        (
-            user_id,
-            saldo,
-            "PENDENTE"
-        )
-    )
-
-    conn.commit()
-
-    bot.reply_to(
-        message,
-        "✅ Seu pedido de saque foi enviado para análise."
-    )
-
-@bot.message_handler(commands=['pedidos'])
-def pedidos(message):
-
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "❌ Você não tem permissão.")
-        return
-
-    cursor.execute(
-        "SELECT id, usuario, valor FROM saques WHERE status=?",
-        ("PENDENTE",)
-    )
-
-    pedidos = cursor.fetchall()
-
-    if not pedidos:
-        bot.reply_to(message, "Não existem saques pendentes.")
-        return
-
-    texto = "📋 Saques pendentes:\n\n"
-
-    for saque in pedidos:
-        texto += (
-        f"ID do saque: {saque[0]}\n"
-        f"ID do usuário: {saque[1]}\n"
-        f"Valor: R$ {saque[2]:.2f}\n\n"
-    )
-
-    bot.reply_to(message, texto)
-
-@bot.message_handler(commands=['aprovar'])
-def aprovar(message):
-
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "❌ Você não tem permissão.")
-        return
-
-    try:
-        saque_id = int(message.text.split()[1])
-    except:
-        bot.reply_to(
-            message,
-            "Use assim:\n/aprovar ID_DO_SAQUE"
-        )
-        return
-
-    cursor.execute(
-        "SELECT usuario, valor, status FROM saques WHERE id=?",
-        (saque_id,)
-    )
-
-    saque = cursor.fetchone()
-
-    if not saque:
-        bot.reply_to(message, "❌ Saque não encontrado.")
-        return
-
-    usuario, valor, status = saque
-
-    if status != "PENDENTE":
-        bot.reply_to(
-            message,
-            "❌ Esse saque já foi processado."
-        )
-        return
-
-    cursor.execute(
-        "UPDATE saques SET status=? WHERE id=?",
-        ("APROVADO", saque_id)
-    )
-
-    cursor.execute(
-        "UPDATE usuarios SET saldo = saldo - ? WHERE id=?",
-        (valor, usuario)
-    )
-
-    conn.commit()
-
-    bot.send_message(
-    usuario,
-    f"✅ Seu saque de R$ {valor:.2f} foi aprovado!"
-)
-    
-    bot.reply_to(
-        message,
-        f"✅ Saque ID {saque_id} aprovado."
-    )
-
-@bot.message_handler(commands=['rejeitar'])
-def rejeitar(message):
-
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(message, "❌ Você não tem permissão.")
-        return
-
-    try:
-        saque_id = int(message.text.split()[1])
-    except:
-        bot.reply_to(
-            message,
-            "Use assim:\n/rejeitar ID_DO_SAQUE"
-        )
-        return
-
-    cursor.execute(
-    "SELECT usuario, valor, status FROM saques WHERE id=?",
-    (saque_id,)
-)
-
-saque = cursor.fetchone()
-
-    if not saque:
-        bot.reply_to(message, "❌ Saque não encontrado.")
-        return
-usuario, valor, status = saque
-    if status != "PENDENTE":
-        bot.reply_to(
-            message,
-            "❌ Esse saque já foi processado."
-        )
-        return
-
-    cursor.execute(
-        "UPDATE saques SET status=? WHERE id=?",
-        ("REJEITADO", saque_id)
-    )
-
-    conn.commit()
-
-    bot.send_message(
-    usuario,
-    f"❌ Seu saque de R$ {valor:.2f} foi rejeitado."
-)
-    
-    bot.reply_to(
-        message,
-        f"❌ Saque ID {saque_id} rejeitado."
-    )
-
-@bot.message_handler(commands=['saldo'])
-def saldo(message):
-
-    user_id = message.from_user.id
-
-    cursor.execute(
-        "SELECT saldo FROM usuarios WHERE id=?",
-        (user_id,)
-    )
-
-    user = cursor.fetchone()
-
-    if not user:
-        bot.reply_to(
-            message,
-            "Use /start primeiro."
-        )
-        return
-
-    saldo = user[0]
-
-    bot.reply_to(
-        message,
-        f"💰 Seu saldo é: R$ {saldo:.2f}"
-    )
-
-
-@bot.message_handler(commands=['adicionar'])
-def adicionar(message):
-
-    if message.from_user.id != ADMIN_ID:
-        bot.reply_to(
-            message,
-            "❌ Você não tem permissão."
-        )
-        return
-
-    try:
-        dados = message.text.split()
-
-        usuario_id = int(dados[1])
-        valor = float(dados[2])
-
-    except:
-        bot.reply_to(
-            message,
-            "Use assim:\n/adicionar ID VALOR"
-        )
-        return
-
-    cursor.execute(
-        "SELECT saldo FROM usuarios WHERE id=?",
-        (usuario_id,)
+        (message.from_user.id,)
     )
 
     usuario = cursor.fetchone()
 
-    if not usuario:
-        bot.reply_to(
-            message,
-            "❌ Usuário não encontrado."
-        )
-        return
+    if usuario:
 
-    novo_saldo = usuario[0] + valor
+        if usuario[0] == 1:
 
-    cursor.execute(
-        "UPDATE usuarios SET saldo=? WHERE id=?",
-        (novo_saldo, usuario_id)
-    )
+            bot.reply_to(
+                message,
+                """
+🚫 Sua conta está bloqueada.
 
-    conn.commit()
+Entre em contato com o suporte.
+"""
+            )
 
-    bot.reply_to(
-        message,
-        f"✅ Saldo adicionado.\n\nNovo saldo: R$ {novo_saldo:.2f}"
-    )
+            return
 
+# ==========================================
+# ERROS
+# ==========================================
 
-bot.infinity_polling(skip_pending=True)
+def iniciar():
+
+    while True:
+
+        try:
+
+            print("Bot iniciado.")
+
+            bot.infinity_polling(
+                timeout=30,
+                long_polling_timeout=30
+            )
+
+        except Exception as erro:
+
+            print(
+                f"Erro: {erro}"
+            )
+
+# ==========================================
+# MAIN
+# ==========================================
+
+if __name__ == "__main__":
+
+    iniciar()
