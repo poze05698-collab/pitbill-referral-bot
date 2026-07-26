@@ -1,5 +1,4 @@
-from telebot.types import ReplyKeyboardMarkup
-from telebot.types import KeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 # ==========================================
 # MENU PRINCIPAL
@@ -28,8 +27,17 @@ def menu_principal():
     )
 
     menu.add(
+        KeyboardButton("📜 Histórico"),
+        KeyboardButton("🏆 Ranking")
+    )
+
+    menu.add(
         KeyboardButton("📜 Regras"),
         KeyboardButton("ℹ️ Informações")
+    )
+
+    menu.add(
+        KeyboardButton("📞 Suporte")
     )
 
     return menu
@@ -57,7 +65,16 @@ def menu_admin():
     )
 
     menu.add(
-        KeyboardButton("🚫 Banidos"),
+        KeyboardButton("➕ Adicionar Saldo"),
+        KeyboardButton("➖ Remover Saldo")
+    )
+
+    menu.add(
+        KeyboardButton("🚫 Banir"),
+        KeyboardButton("✅ Desbanir")
+    )
+
+    menu.add(
         KeyboardButton("⚙️ Configurações")
     )
 
