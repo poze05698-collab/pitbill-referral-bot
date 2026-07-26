@@ -1,99 +1,86 @@
 # ==========================================
-# TOKEN DO BOT
+# CONFIGURAÇÕES DO BOT
 # ==========================================
 
+# Token do BotFather
 TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg"
 
 # ==========================================
 # ADMINISTRADOR
 # ==========================================
 
-# Seu ID do Telegram
 ADMIN_ID = 6172813641
 
 # ==========================================
-# CANAL / GRUPO
+# BOT
 # ==========================================
 
-# Obrigatório para validar indicações
+NOME_BOT = "Pitbull Referral Bot"
+
+VERSAO = "3.0"
+
+SUPORTE = "@PitbullSlots011"
+
+# ==========================================
+# GRUPO
+# ==========================================
 
 GRUPO_ID = -1003355182545
 
-# Username do grupo
 GRUPO_LINK = "https://t.me/pitbullslotsofc"
 
-# ==========================================
-# VALORES
-# ==========================================
+GRUPO_OBRIGATORIO = True
 
-# Recompensa por indicação
+# ==========================================
+# INDICAÇÕES
+# ==========================================
 
 VALOR_INDICACAO = 1.00
 
-# Valor mínimo para saque
+# ==========================================
+# SAQUES
+# ==========================================
 
 VALOR_MINIMO_SAQUE = 15.00
+
+PIX_OBRIGATORIO = True
 
 # ==========================================
 # SISTEMA
 # ==========================================
 
-# Ativar proteção contra fraude
-
 ANTI_FRAUDE = True
 
-# Exigir entrada no grupo
-
-GRUPO_OBRIGATORIO = True
-
-# Exigir chave Pix
-
-PIX_OBRIGATORIO = True
-
-# ==========================================
-# MENSAGENS
-# ==========================================
-
-NOME_BOT = "Bot Indicações"
-
-SUPORTE = "@PitbullSlots011"
-
-# ==========================================
-# ANTI SPAM
-# ==========================================
-
-TEMPO_ENTRE_COMANDOS = 2
-
-# ==========================================
-# LOGS
-# ==========================================
-
 LOGS = True
+
+# ==========================================
+# MANUTENÇÃO
+# ==========================================
+
+MODO_MANUTENCAO = False
+
+MENSAGEM_MANUTENCAO = """
+🔧 BOT EM MANUTENÇÃO
+
+Estamos realizando melhorias.
+
+Tente novamente em alguns minutos.
+
+Agradecemos pela compreensão.
+"""
 
 # ==========================================
 # BANIMENTO
 # ==========================================
 
-MOTIVO_BANIMENTO = """
-Sua conta foi bloqueada por atividade suspeita.
+MENSAGEM_BANIMENTO = """
+🚫 SUA CONTA FOI BLOQUEADA
 
-Caso ache que houve um erro,
-entre em contato com o suporte.
+Entre em contato com o suporte.
 """
 
 # ==========================================
-# VERSÃO
+# DATA
 # ==========================================
 
-VERSAO = "2.0"
-# ==========================================
-# SAQUES
-# ==========================================
-
-SAQUES_ATIVOS = True
-
-# ==========================================
-# MODO MANUTENÇÃO
-# ==========================================
-
-MANUTENCAO = False
+FORMATO_DATA = "%d/%m/%Y %H:%M"
