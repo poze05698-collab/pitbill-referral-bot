@@ -1,13 +1,16 @@
 import telebot
 
 
-from config import (
-    TOKEN
-)
+# ==========================================
+# CONFIG
+# ==========================================
+
+from config import TOKEN
+
 
 
 # ==========================================
-# IMPORTAR BANCO
+# BANCO
 # ==========================================
 
 import database
@@ -15,7 +18,7 @@ import database
 
 
 # ==========================================
-# IMPORTAR MÓDULOS
+# MÓDULOS
 # ==========================================
 
 from usuario import registrar_usuario
@@ -45,7 +48,7 @@ bot = telebot.TeleBot(
 
 
 # ==========================================
-# REGISTRAR SISTEMAS
+# CARREGAR SISTEMAS
 # ==========================================
 
 registrar_usuario(bot)
@@ -61,7 +64,7 @@ registrar_antifraude(bot)
 
 
 # ==========================================
-# COMANDO PING
+# TESTE ONLINE
 # ==========================================
 
 @bot.message_handler(
@@ -79,16 +82,9 @@ def ping(message):
 
 
 
-# ==========================================
-# ERRO GERAL
-# ==========================================
-
-@bot.message_handler(
-    func=lambda m: True
-)
-def mensagens_nao_reconhecidas(message):
-
-    pass# ==========================================
+print(
+    "🤖 Bot iniciado com sucesso!"
+)# ==========================================
 # INICIAR BOT
 # ==========================================
 
@@ -99,7 +95,7 @@ if __name__ == "__main__":
         """
 ================================
 
-🤖 BOT INICIADO COM SUCESSO
+🤖 BOT INICIADO
 
 ✅ Usuários carregado
 ✅ Indicações carregado
@@ -113,6 +109,7 @@ if __name__ == "__main__":
 
 
     while True:
+
 
         try:
 
@@ -131,13 +128,13 @@ if __name__ == "__main__":
 
             print(
 
-                f"Erro no bot: {erro}"
+                f"⚠️ Erro encontrado: {erro}"
 
             )
 
 
             print(
 
-                "Tentando reconectar..."
+                "🔄 Tentando reconectar..."
 
             )
