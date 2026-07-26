@@ -1,8 +1,10 @@
 from database import conn, cursor
 
+
 from config import (
     NOME_BOT
 )
+
 
 from teclado import (
     menu_principal,
@@ -10,20 +12,24 @@ from teclado import (
     menu_grupo
 )
 
+
 from utils import (
     verificar_acesso,
     adicionar_log,
+    adicionar_historico,
     agora
 )
 
+
 from indicacoes import (
-    processar_convite
+    processar_convite,
+    finalizar_indicacao
 )
 
 
 
 # ==========================================
-# REGISTRAR MÓDULO USUÁRIO
+# REGISTRAR USUÁRIO
 # ==========================================
 
 def registrar_usuario(bot):
@@ -36,9 +42,11 @@ def registrar_usuario(bot):
     @bot.message_handler(commands=["start"])
     def start(message):
 
+
         user_id = message.from_user.id
 
         nome = message.from_user.first_name
+
 
         username = (
 
@@ -60,9 +68,7 @@ def registrar_usuario(bot):
 
 
 
-        # ==================================
-        # VERIFICAR USUÁRIO
-        # ==================================
+        # Verifica usuário
 
         cursor.execute(
 
@@ -148,13 +154,14 @@ def registrar_usuario(bot):
             conn.commit()
 
 
+
             adicionar_log(
 
                 user_id,
 
                 "CADASTRO",
 
-                "Novo usuário criado"
+                "Novo usuário cadastrado"
 
             )
 
@@ -188,9 +195,7 @@ def registrar_usuario(bot):
 
 
 
-        # ==================================
-        # PROCESSAR CONVITE
-        # ==================================
+        # Processar convite
 
         indicador = processar_convite(
 
@@ -199,6 +204,7 @@ def registrar_usuario(bot):
             message.text
 
         )
+
 
 
         if indicador:
@@ -212,8 +218,7 @@ def registrar_usuario(bot):
 🎁 Você entrou através de um convite!
 
 
-Para validar sua indicação:
-
+Agora faça:
 
 👥 Entre no grupo
 
@@ -222,7 +227,7 @@ Para validar sua indicação:
 💳 Cadastre seu Pix
 
 
-Depois disso a recompensa será liberada.
+Depois sua indicação será validada.
 """,
 
                 reply_markup=menu_grupo()
@@ -238,7 +243,7 @@ Depois disso a recompensa será liberada.
             message.chat.id,
 
             f"""
-🎉 Bem-vindo ao {NOME_BOT}!
+🎉 Bem-vindo ao {NOME_BOT}
 
 Use o menu abaixo.
 """,
@@ -254,12 +259,14 @@ Use o menu abaixo.
     )
     def perfil(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
         user_id = message.from_user.id
+
 
 
         cursor.execute(
@@ -296,50 +303,35 @@ Use o menu abaixo.
 
 
 
-        nome = usuario[0]
+        bot.send_message(
 
-        username = usuario[1]
+            message.chat.id,
 
-        saldo = usuario[2]
-
-        convidados = usuario[3]
-
-
-
-        texto = f"""
+            f"""
 👤 <b>SEU PERFIL</b>
 
 
 Nome:
 
-{nome}
+{usuario[0]}
 
 
 Usuário:
 
-{username}
+{usuario[1]}
 
 
 💰 Saldo:
 
-R$ {saldo:.2f}
+R$ {usuario[2]:.2f}
 
 
 👥 Indicados:
 
-{convidados}
-"""
+{usuario[3]}
+""",
 
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
-
-            parse_mode="HTML",
-
-            reply_markup=menu_principal()
+            parse_mode="HTML"
 
         )
 
@@ -354,12 +346,15 @@ R$ {saldo:.2f}
     )
     def saldo(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
+
         user_id = message.from_user.id
+
 
 
         cursor.execute(
@@ -382,7 +377,12 @@ R$ {saldo:.2f}
 
 
 
-        valor = resultado[0] if resultado else 0
+        valor = 0
+
+
+        if resultado:
+
+            valor = resultado[0]
 
 
 
@@ -412,24 +412,29 @@ R$ {valor:.2f}
     )
     def meu_link(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
+
         user_id = message.from_user.id
 
 
-        bot_username = bot.get_me().username
+
+        nome_bot = bot.get_me().username
+
 
 
         link = (
 
-            f"https://t.me/{bot_username}"
+            f"https://t.me/{nome_bot}"
 
             f"?start=convite_{user_id}"
 
         )
+
 
 
         bot.send_message(
@@ -445,7 +450,7 @@ Compartilhe:
 <code>{link}</code>
 
 
-💰 Cada indicação válida gera recompensa.
+💰 Ganhe recompensa por cada indicação válida.
 """,
 
             parse_mode="HTML"
@@ -463,18 +468,23 @@ Compartilhe:
     )
     def indicados(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
+
         user_id = message.from_user.id
 
 
+
         cursor.execute(
 
             """
             SELECT
+
+                status,
 
                 COUNT(*)
 
@@ -482,7 +492,7 @@ Compartilhe:
 
             WHERE indicador=?
 
-            AND status='APROVADA'
+            GROUP BY status
 
             """,
 
@@ -491,72 +501,76 @@ Compartilhe:
         )
 
 
-        aprovadas = cursor.fetchone()[0]
+        dados = cursor.fetchall()
 
 
 
-        cursor.execute(
+        pendentes = 0
 
-            """
-            SELECT
+        grupo_ok = 0
 
-                COUNT(*)
-
-            FROM indicacoes
-
-            WHERE indicador=?
-
-            AND status='PENDENTE'
-
-            """,
-
-            (user_id,)
-
-        )
-
-
-        pendentes = cursor.fetchone()[0]
+        aprovadas = 0
 
 
 
-        texto = f"""
-👥 <b>SUAS INDICAÇÕES</b>
+        for status, quantidade in dados:
 
 
-✅ Aprovadas:
+            if status == "PENDENTE":
 
-{aprovadas}
+                pendentes = quantidade
 
 
-⏳ Pendentes:
+            elif status == "GRUPO_OK":
 
-{pendentes}
-"""
+                grupo_ok = quantidade
+
+
+            elif status == "APROVADA":
+
+                aprovadas = quantidade
+
 
 
         bot.send_message(
 
             message.chat.id,
 
-            texto,
+            f"""
+👥 <b>SUAS INDICAÇÕES</b>
+
+
+⏳ Pendentes:
+
+{pendentes}
+
+
+👥 Grupo confirmado:
+
+{grupo_ok}
+
+
+✅ Aprovadas:
+
+{aprovadas}
+""",
 
             parse_mode="HTML"
 
-        )from indicacoes import finalizar_indicacao
-
-
-# ======================================
-# MENU PIX
-# ======================================
+        )    # ======================================
+    # MENU PIX
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "💳 Pix"
     )
     def pix_menu(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
+
 
 
         bot.send_message(
@@ -584,18 +598,20 @@ Escolha uma opção:
 
 
 
-# ======================================
-# CADASTRAR PIX
-# ======================================
+    # ======================================
+    # CADASTRAR PIX
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "➕ Cadastrar Pix"
     )
     def cadastrar_pix(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
+
 
 
         bot.send_message(
@@ -603,14 +619,14 @@ Escolha uma opção:
             message.chat.id,
 
             """
-💳 Envie agora sua chave Pix.
+💳 Envie sua chave Pix:
 
 Pode ser:
 
-• CPF
-• E-mail
-• Telefone
-• Chave aleatória
+CPF
+E-mail
+Telefone
+Chave aleatória
 """
 
         )
@@ -626,11 +642,12 @@ Pode ser:
 
 
 
-# ======================================
-# SALVAR PIX
-# ======================================
+    # ======================================
+    # SALVAR PIX
+    # ======================================
 
     def salvar_pix(message):
+
 
         user_id = message.from_user.id
 
@@ -646,7 +663,7 @@ Pode ser:
 
                 message.chat.id,
 
-                "❌ Pix inválido."
+                "❌ Chave Pix inválida."
 
             )
 
@@ -697,16 +714,18 @@ Pode ser:
             message.chat.id,
 
             """
-✅ Pix cadastrado com sucesso!
+✅ Pix cadastrado!
 
-Verificando sua indicação...
+
+Verificando indicação pendente...
 """
 
         )
 
 
+
         # ==================================
-        # VALIDAR INDICAÇÃO
+        # FINALIZAR INDICAÇÃO
         # ==================================
 
         aprovado = finalizar_indicacao(
@@ -718,6 +737,7 @@ Verificando sua indicação...
         )
 
 
+
         if aprovado:
 
 
@@ -726,9 +746,10 @@ Verificando sua indicação...
                 message.chat.id,
 
                 """
-🎉 Sua indicação foi validada!
+🎉 Indicação validada!
 
-O sistema liberou a recompensa.
+
+A recompensa foi liberada.
 """
 
             )
@@ -751,18 +772,20 @@ Nenhuma indicação pendente para validar.
 
 
 
-# ======================================
-# ALTERAR PIX
-# ======================================
+    # ======================================
+    # ALTERAR PIX
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "✏️ Alterar Pix"
     )
     def alterar_pix(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
+
 
 
         bot.send_message(
@@ -786,21 +809,24 @@ Nenhuma indicação pendente para validar.
 
 
 
-# ======================================
-# VER PIX
-# ======================================
+    # ======================================
+    # VER PIX
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "👁 Ver Pix"
     )
     def ver_pix(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
+
         user_id = message.from_user.id
+
 
 
         cursor.execute(
@@ -823,7 +849,7 @@ Nenhuma indicação pendente para validar.
 
 
 
-        if resultado is None or resultado[0] == "":
+        if not resultado or resultado[0] == "":
 
 
             texto = """
@@ -851,21 +877,24 @@ Nenhuma indicação pendente para validar.
 
             parse_mode="HTML"
 
-        )# ======================================
-# HISTÓRICO
-# ======================================
+        )    # ======================================
+    # HISTÓRICO
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "📜 Histórico"
     )
     def historico(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
 
 
+
         user_id = message.from_user.id
+
 
 
         cursor.execute(
@@ -950,14 +979,15 @@ Nenhuma indicação pendente para validar.
 
 
 
-# ======================================
-# REGRAS
-# ======================================
+    # ======================================
+    # REGRAS
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "📜 Regras"
     )
     def regras(message):
+
 
         bot.send_message(
 
@@ -967,16 +997,15 @@ Nenhuma indicação pendente para validar.
 📜 <b>REGRAS DO BOT</b>
 
 
-✅ Não é permitido criar várias contas.
+✅ Não crie várias contas.
 
-✅ Auto indicação é proibida.
+✅ Não faça auto indicação.
 
-✅ Tentativas de fraude causam bloqueio.
+✅ Não use Pix de terceiros.
+
+✅ Fraudes podem causar bloqueio.
 
 ✅ O pagamento depende da validação.
-
-
-Respeite as regras para continuar usando.
 """,
 
             parse_mode="HTML"
@@ -985,14 +1014,15 @@ Respeite as regras para continuar usando.
 
 
 
-# ======================================
-# INFORMAÇÕES
-# ======================================
+    # ======================================
+    # INFORMAÇÕES
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "ℹ️ Informações"
     )
     def informacoes(message):
+
 
         bot.send_message(
 
@@ -1005,9 +1035,9 @@ Respeite as regras para continuar usando.
 🤖 Sistema automático de indicações.
 
 
-🎁 Convide amigos.
+🎁 Convide pessoas.
 
-💰 Ganhe recompensas.
+💰 Receba recompensas.
 
 💳 Cadastre seu Pix.
 
@@ -1020,28 +1050,33 @@ Respeite as regras para continuar usando.
 
 
 
-# ======================================
-# MENU PRINCIPAL
-# ======================================
+    # ======================================
+    # VOLTAR MENU
+    # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "🏠 Menu"
     )
     def voltar_menu(message):
 
+
         if not verificar_acesso(bot, message):
 
             return
+
 
 
         bot.send_message(
 
             message.chat.id,
 
-            """
-🏠 Menu principal
-""",
+            "🏠 Menu principal",
 
             reply_markup=menu_principal()
 
         )
+
+
+# ==========================================
+# FIM DO USUARIO.PY
+# ==========================================
