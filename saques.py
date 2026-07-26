@@ -1,8 +1,14 @@
 from datetime import datetime
 
 from database import conn, cursor
-from config import VALOR_MINIMO_SAQUE
+
+from config import (
+    VALOR_MINIMO_SAQUE,
+    ADMIN_ID
+)
+
 from teclado import menu_principal
+
 
 # ==========================================
 # REGISTRAR MÓDULO SAQUES
@@ -21,8 +27,12 @@ def registrar_saques(bot):
 
         cursor.execute(
             """
-            SELECT saldo, pix
+            SELECT
+                saldo,
+                pix
+
             FROM usuarios
+
             WHERE id=?
             """,
             (user_id,)
@@ -30,11 +40,11 @@ def registrar_saques(bot):
 
         usuario = cursor.fetchone()
 
-        if not usuario:
+        if usuario is None:
 
             bot.reply_to(
                 message,
-                "Use /start primeiro."
+                "❌ Use /start primeiro."
             )
 
             return
@@ -45,26 +55,23 @@ def registrar_saques(bot):
         # PIX
         # ==================================
 
-        if pix == "":
+        if not pix:
 
             bot.reply_to(
-
                 message,
-
                 """
-❌ Cadastre sua chave Pix primeiro.
+❌ Você precisa cadastrar sua chave Pix primeiro.
 
 Clique em:
 
 💳 Pix
 """
-
             )
 
             return
 
         # ==================================
-        # VALOR MÍNIMO
+        # SALDO
         # ==================================
 
         if saldo < VALOR_MINIMO_SAQUE:
@@ -72,27 +79,23 @@ Clique em:
             falta = VALOR_MINIMO_SAQUE - saldo
 
             bot.reply_to(
-
                 message,
-
                 f"""
-❌ Saldo insuficiente.
+❌ Você ainda não pode sacar.
 
 Faltam:
 
 R$ {falta:.2f}
 """
-
             )
 
             return
 
         # ==================================
-        # SAQUE DUPLICADO
+        # SAQUE PENDENTE
         # ==================================
 
         cursor.execute(
-
             """
             SELECT id
 
@@ -102,21 +105,16 @@ R$ {falta:.2f}
 
             AND status='PENDENTE'
             """,
-
             (user_id,)
-
         )
 
         if cursor.fetchone():
 
             bot.reply_to(
-
                 message,
-
                 """
 ❌ Você já possui um saque pendente.
 """
-
             )
 
             return
@@ -126,46 +124,43 @@ R$ {falta:.2f}
         # ==================================
 
         texto = f"""
-💸 Confirma a solicitação?
+💸 <b>CONFIRMAR SAQUE</b>
 
-Valor:
+💰 Valor:
 
 R$ {saldo:.2f}
 
-Pix:
+💳 Pix:
 
 <code>{pix}</code>
+
+Digite:
+
+<b>SIM</b>
+
+para confirmar.
 """
 
         bot.send_message(
-
             message.chat.id,
-
             texto,
-
             parse_mode="HTML"
-
         )
 
         bot.register_next_step_handler(
-
             message,
-
             confirmar_saque,
-
             saldo,
-
             pix
-
         )
 
     # ======================================
-    # CONFIRMAR
+    # CONFIRMAR SAQUE
     # ======================================
 
     def confirmar_saque(message, valor, pix):
 
-        resposta = message.text.lower()
+        resposta = message.text.strip().lower()
 
         if resposta not in [
 
@@ -178,18 +173,48 @@ Pix:
         ]:
 
             bot.reply_to(
-
                 message,
+                "❌ Solicitação cancelada."
+            )
 
-                "❌ Saque cancelado."
+            return
 
+        user_id = message.from_user.id
+
+        # Verifica novamente o saldo
+
+        cursor.execute(
+            """
+            SELECT saldo
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
+            (user_id,)
+        )
+
+        saldo_atual = cursor.fetchone()
+
+        if saldo_atual is None:
+
+            bot.reply_to(
+                message,
+                "❌ Usuário não encontrado."
+            )
+
+            return
+
+        if saldo_atual[0] < valor:
+
+            bot.reply_to(
+                message,
+                "❌ Seu saldo mudou. Solicite novamente."
             )
 
             return        # ==================================
         # REGISTRAR SAQUE
         # ==================================
-
-        user_id = message.from_user.id
 
         cursor.execute(
             """
@@ -258,7 +283,7 @@ Pix:
         conn.commit()
 
         # ==================================
-        # CONFIRMAÇÃO USUÁRIO
+        # CONFIRMAÇÃO PARA O USUÁRIO
         # ==================================
 
         bot.send_message(
@@ -266,15 +291,15 @@ Pix:
             message.chat.id,
 
             f"""
-✅ Solicitação enviada.
+✅ <b>Solicitação enviada com sucesso!</b>
 
-🆔 ID:
+🆔 ID do saque:
 <code>{saque_id}</code>
 
 💰 Valor:
-R$ {valor:.2f}
+<b>R$ {valor:.2f}</b>
 
-Aguarde a aprovação do administrador.
+⏳ Aguarde a análise do administrador.
 """,
 
             parse_mode="HTML",
@@ -284,40 +309,42 @@ Aguarde a aprovação do administrador.
         )
 
         # ==================================
-        # AVISAR ADMIN
+        # AVISAR ADMINISTRADOR
         # ==================================
 
         try:
-
-            from config import ADMIN_ID
 
             bot.send_message(
 
                 ADMIN_ID,
 
                 f"""
-🚨 Novo saque solicitado
+🚨 <b>NOVO PEDIDO DE SAQUE</b>
 
 🆔 ID:
-{saque_id}
+<code>{saque_id}</code>
 
 👤 Usuário:
-{user_id}
+<code>{user_id}</code>
 
 💰 Valor:
-R$ {valor:.2f}
+<b>R$ {valor:.2f}</b>
 
-Use:
+Para aprovar:
 
-/aprovar {saque_id}
+<code>/aprovar {saque_id}</code>
 
-ou
+Para rejeitar:
 
-/rejeitar {saque_id}
-"""
+<code>/rejeitar {saque_id}</code>
+""",
+
+                parse_mode="HTML"
 
             )
 
-        except:
+        except Exception as erro:
 
-            pass
+            print(
+                f"Erro ao avisar administrador: {erro}"
+            )
