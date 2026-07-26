@@ -1,56 +1,53 @@
-import telebot
-
-from datetime import datetime
-
 from config import ADMIN_ID
-from database import conn, cursor
+
+from database import (
+    conn,
+    cursor
+)
+
+from teclado import (
+    menu_admin,
+    menu_principal
+)
+
+from utils import (
+    adicionar_log,
+    adicionar_historico,
+    alterar_config,
+    agora
+)
 
 # ==========================================
-# REGISTRAR MÓDULO ADMIN
+# REGISTRAR MÓDULO
 # ==========================================
 
 def registrar_admin(bot):
 
     # ======================================
-    # VERIFICAR ADMIN
-    # ======================================
-
-    def eh_admin(user_id):
-
-        return user_id == ADMIN_ID
-
-    # ======================================
-    # PAINEL ADMIN
+    # /ADMIN
     # ======================================
 
     @bot.message_handler(commands=["admin"])
     def painel_admin(message):
 
-        if not eh_admin(message.from_user.id):
+        if message.from_user.id != ADMIN_ID:
+
+            bot.reply_to(
+
+                message,
+
+                "❌ Você não é administrador."
+
+            )
 
             return
 
         texto = """
 👑 <b>PAINEL ADMINISTRATIVO</b>
 
-Comandos disponíveis:
+Bem-vindo.
 
-📊 /estatisticas
-👥 /usuarios
-
-💸 /pedidos
-✅ /aprovar ID
-❌ /rejeitar ID
-
-💰 /addsaldo ID VALOR
-
-🏆 /ranking
-
-🚫 /banir ID
-✅ /desbanir ID
-
-⚙️ /config
-📜 /historico ID
+Escolha uma opção abaixo.
 """
 
         bot.send_message(
@@ -59,40 +56,9 @@ Comandos disponíveis:
 
             texto,
 
-            parse_mode="HTML"
+            parse_mode="HTML",
 
-        )
-
-    # ======================================
-    # TOTAL DE USUÁRIOS
-    # ======================================
-
-    @bot.message_handler(commands=["usuarios"])
-    def usuarios(message):
-
-        if not eh_admin(message.from_user.id):
-
-            return
-
-        cursor.execute(
-            "SELECT COUNT(*) FROM usuarios"
-        )
-
-        total = cursor.fetchone()[0]
-
-        bot.send_message(
-
-            message.chat.id,
-
-            f"""
-👥 <b>USUÁRIOS CADASTRADOS</b>
-
-Total:
-
-<b>{total}</b>
-""",
-
-            parse_mode="HTML"
+            reply_markup=menu_admin()
 
         )
 
@@ -100,574 +66,58 @@ Total:
     # ESTATÍSTICAS
     # ======================================
 
-    @bot.message_handler(commands=["estatisticas"])
+    @bot.message_handler(func=lambda m: m.text == "📊 Estatísticas")
     def estatisticas(message):
 
-        if not eh_admin(message.from_user.id):
-
+        if message.from_user.id != ADMIN_ID:
             return
 
         cursor.execute(
             "SELECT COUNT(*) FROM usuarios"
         )
 
-        total_usuarios = cursor.fetchone()[0]
+        usuarios = cursor.fetchone()[0]
 
         cursor.execute(
             "SELECT COUNT(*) FROM saques"
         )
 
-        total_saques = cursor.fetchone()[0]
+        saques = cursor.fetchone()[0]
 
         cursor.execute(
-            """
-            SELECT IFNULL(SUM(valor),0)
-
-            FROM saques
-
-            WHERE status='APROVADO'
-            """
-        )
-
-        total_pago = cursor.fetchone()[0]
-
-        cursor.execute(
-            """
-            SELECT COUNT(*)
-
-            FROM indicacoes
-
-            WHERE status='APROVADA'
-            """
+            "SELECT COUNT(*) FROM indicacoes"
         )
 
         indicacoes = cursor.fetchone()[0]
 
+        cursor.execute(
+            "SELECT SUM(saldo) FROM usuarios"
+        )
+
+        saldo = cursor.fetchone()[0]
+
+        if saldo is None:
+            saldo = 0
+
         texto = f"""
-📊 <b>ESTATÍSTICAS DO BOT</b>
+📊 <b>ESTATÍSTICAS</b>
 
 👥 Usuários:
-<b>{total_usuarios}</b>
 
-👤 Indicações aprovadas:
+<b>{usuarios}</b>
+
+👤 Indicações:
+
 <b>{indicacoes}</b>
 
-💸 Total de saques:
-<b>{total_saques}</b>
+💸 Saques:
 
-💰 Total pago:
+<b>{saques}</b>
 
-<b>R$ {total_pago:.2f}</b>
+💰 Saldo total:
+
+<b>R$ {saldo:.2f}</b>
 """
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
-
-            parse_mode="HTML"
-
-        )    # ======================================
-    # PEDIDOS DE SAQUE
-    # ======================================
-
-    @bot.message_handler(commands=["pedidos"])
-    def pedidos(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        cursor.execute(
-            """
-            SELECT
-
-                id,
-                usuario,
-                valor,
-                pix,
-                data
-
-            FROM saques
-
-            WHERE status='PENDENTE'
-
-            ORDER BY id ASC
-            """
-        )
-
-        saques = cursor.fetchall()
-
-        if len(saques) == 0:
-
-            bot.send_message(
-
-                message.chat.id,
-
-                "✅ Não existem saques pendentes."
-
-            )
-
-            return
-
-        texto = "📋 <b>SAQUES PENDENTES</b>\n\n"
-
-        for saque in saques:
-
-            texto += f"""
-🆔 ID: <code>{saque[0]}</code>
-
-👤 Usuário:
-<code>{saque[1]}</code>
-
-💰 Valor:
-<b>R$ {saque[2]:.2f}</b>
-
-💳 Pix:
-<code>{saque[3]}</code>
-
-📅 Data:
-{saque[4]}
-
-──────────────
-
-"""
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
-
-            parse_mode="HTML"
-
-        )
-
-    # ======================================
-    # APROVAR SAQUE
-    # ======================================
-
-    @bot.message_handler(commands=["aprovar"])
-    def aprovar(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        try:
-
-            saque_id = int(
-                message.text.split()[1]
-            )
-
-        except:
-
-            bot.reply_to(
-                message,
-                "Use:\n/aprovar ID"
-            )
-
-            return
-
-        cursor.execute(
-            """
-            SELECT
-
-                usuario,
-                valor,
-                status
-
-            FROM saques
-
-            WHERE id=?
-            """,
-            (saque_id,)
-        )
-
-        saque = cursor.fetchone()
-
-        if saque is None:
-
-            bot.reply_to(
-                message,
-                "❌ Saque não encontrado."
-            )
-
-            return
-
-        usuario, valor, status = saque
-
-        if status != "PENDENTE":
-
-            bot.reply_to(
-                message,
-                "❌ Esse saque já foi processado."
-            )
-
-            return
-
-        cursor.execute(
-            """
-            UPDATE saques
-
-            SET status='APROVADO'
-
-            WHERE id=?
-            """,
-            (saque_id,)
-        )
-
-        cursor.execute(
-            """
-            UPDATE usuarios
-
-            SET saldo = saldo - ?
-
-            WHERE id=?
-            """,
-            (
-                valor,
-                usuario
-            )
-        )
-
-        cursor.execute(
-            """
-            INSERT INTO historico(
-
-                usuario,
-                tipo,
-                descricao,
-                valor,
-                data
-
-            )
-
-            VALUES(
-
-                ?,?,?,?,?
-
-            )
-            """,
-            (
-                usuario,
-                "SAQUE",
-                "Saque aprovado",
-                valor,
-                datetime.now().strftime(
-                    "%d/%m/%Y %H:%M"
-                )
-            )
-        )
-
-        conn.commit()
-
-        try:
-
-            bot.send_message(
-
-                usuario,
-
-                f"""
-✅ <b>Seu saque foi aprovado!</b>
-
-💰 Valor:
-
-<b>R$ {valor:.2f}</b>
-
-Em breve o pagamento será realizado.
-""",
-
-                parse_mode="HTML"
-
-            )
-
-        except Exception as erro:
-
-            print(erro)
-
-        bot.reply_to(
-
-            message,
-
-            "✅ Saque aprovado com sucesso."
-
-        )
-
-    # ======================================
-    # REJEITAR SAQUE
-    # ======================================
-
-    @bot.message_handler(commands=["rejeitar"])
-    def rejeitar(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        try:
-
-            saque_id = int(
-                message.text.split()[1]
-            )
-
-        except:
-
-            bot.reply_to(
-                message,
-                "Use:\n/rejeitar ID"
-            )
-
-            return
-
-        cursor.execute(
-            """
-            SELECT
-
-                usuario,
-                valor,
-                status
-
-            FROM saques
-
-            WHERE id=?
-            """,
-            (saque_id,)
-        )
-
-        saque = cursor.fetchone()
-
-        if saque is None:
-
-            bot.reply_to(
-                message,
-                "❌ Saque não encontrado."
-            )
-
-            return
-
-        usuario, valor, status = saque
-
-        if status != "PENDENTE":
-
-            bot.reply_to(
-                message,
-                "❌ Esse saque já foi processado."
-            )
-
-            return
-
-        cursor.execute(
-            """
-            UPDATE saques
-
-            SET status='REJEITADO'
-
-            WHERE id=?
-            """,
-            (saque_id,)
-        )
-
-        conn.commit()
-
-        try:
-
-            bot.send_message(
-
-                usuario,
-
-                f"""
-❌ <b>Seu saque foi rejeitado.</b>
-
-💰 Valor:
-
-<b>R$ {valor:.2f}</b>
-
-Entre em contato com o suporte caso tenha dúvidas.
-""",
-
-                parse_mode="HTML"
-
-            )
-
-        except Exception as erro:
-
-            print(erro)
-
-        bot.reply_to(
-
-            message,
-
-            "❌ Saque rejeitado."
-
-        )    # ======================================
-    # ADICIONAR SALDO
-    # ======================================
-
-    @bot.message_handler(commands=["addsaldo"])
-    def adicionar_saldo(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        try:
-
-            dados = message.text.split()
-
-            usuario = int(dados[1])
-
-            valor = float(
-                dados[2].replace(",", ".")
-            )
-
-        except:
-
-            bot.reply_to(
-                message,
-                "Use:\n/addsaldo ID VALOR"
-            )
-
-            return
-
-        cursor.execute(
-            """
-            SELECT id
-
-            FROM usuarios
-
-            WHERE id=?
-            """,
-            (usuario,)
-        )
-
-        if cursor.fetchone() is None:
-
-            bot.reply_to(
-                message,
-                "❌ Usuário não encontrado."
-            )
-
-            return
-
-        cursor.execute(
-            """
-            UPDATE usuarios
-
-            SET saldo = saldo + ?
-
-            WHERE id=?
-            """,
-            (
-                valor,
-                usuario
-            )
-        )
-
-        cursor.execute(
-            """
-            INSERT INTO historico(
-
-                usuario,
-                tipo,
-                descricao,
-                valor,
-                data
-
-            )
-
-            VALUES(
-
-                ?,?,?,?,?
-
-            )
-            """,
-            (
-                usuario,
-                "BONUS",
-                "Saldo adicionado pelo administrador",
-                valor,
-                datetime.now().strftime("%d/%m/%Y %H:%M")
-            )
-        )
-
-        conn.commit()
-
-        try:
-
-            bot.send_message(
-
-                usuario,
-
-                f"""
-🎁 <b>Você recebeu um bônus!</b>
-
-💰 Valor:
-
-<b>R$ {valor:.2f}</b>
-""",
-
-                parse_mode="HTML"
-
-            )
-
-        except Exception as erro:
-
-            print(erro)
-
-        bot.reply_to(
-            message,
-            "✅ Saldo adicionado."
-        )
-
-    # ======================================
-    # RANKING
-    # ======================================
-
-    @bot.message_handler(commands=["ranking"])
-    def ranking(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        cursor.execute(
-            """
-            SELECT
-
-                nome,
-                convidados,
-                saldo
-
-            FROM usuarios
-
-            ORDER BY convidados DESC,
-                     saldo DESC
-
-            LIMIT 10
-            """
-        )
-
-        ranking = cursor.fetchall()
-
-        if not ranking:
-
-            bot.send_message(
-                message.chat.id,
-                "Nenhum usuário encontrado."
-            )
-
-            return
-
-        texto = "🏆 <b>TOP 10 INDICAÇÕES</b>\n\n"
-
-        posicao = 1
-
-        for usuario in ranking:
-
-            texto += (
-                f"{posicao}º - <b>{usuario[0]}</b>\n"
-                f"👥 {usuario[1]} indicados\n"
-                f"💰 R$ {usuario[2]:.2f}\n\n"
-            )
-
-            posicao += 1
 
         bot.send_message(
 
@@ -686,20 +136,25 @@ Entre em contato com o suporte caso tenha dúvidas.
     @bot.message_handler(commands=["banir"])
     def banir(message):
 
-        if not eh_admin(message.from_user.id):
+        if message.from_user.id != ADMIN_ID:
             return
 
         try:
 
             usuario = int(
+
                 message.text.split()[1]
+
             )
 
         except:
 
             bot.reply_to(
+
                 message,
-                "Use:\n/banir ID"
+
+                "Use:\n\n/banir ID"
+
             )
 
             return
@@ -717,6 +172,16 @@ Entre em contato com o suporte caso tenha dúvidas.
 
         conn.commit()
 
+        adicionar_log(
+
+            ADMIN_ID,
+
+            "BANIMENTO",
+
+            f"Usuário {usuario} banido."
+
+        )
+
         try:
 
             bot.send_message(
@@ -724,22 +189,23 @@ Entre em contato com o suporte caso tenha dúvidas.
                 usuario,
 
                 """
-🚫 <b>Sua conta foi bloqueada.</b>
+🚫 Sua conta foi bloqueada.
 
 Entre em contato com o suporte.
-""",
-
-                parse_mode="HTML"
+"""
 
             )
 
-        except Exception as erro:
+        except:
 
-            print(erro)
+            pass
 
         bot.reply_to(
+
             message,
+
             "✅ Usuário bloqueado."
+
         )
 
     # ======================================
@@ -749,20 +215,25 @@ Entre em contato com o suporte.
     @bot.message_handler(commands=["desbanir"])
     def desbanir(message):
 
-        if not eh_admin(message.from_user.id):
+        if message.from_user.id != ADMIN_ID:
             return
 
         try:
 
             usuario = int(
+
                 message.text.split()[1]
+
             )
 
         except:
 
             bot.reply_to(
+
                 message,
-                "Use:\n/desbanir ID"
+
+                "Use:\n\n/desbanir ID"
+
             )
 
             return
@@ -780,6 +251,16 @@ Entre em contato com o suporte.
 
         conn.commit()
 
+        adicionar_log(
+
+            ADMIN_ID,
+
+            "DESBANIMENTO",
+
+            f"Usuário {usuario} desbanido."
+
+        )
+
         try:
 
             bot.send_message(
@@ -787,77 +268,39 @@ Entre em contato com o suporte.
                 usuario,
 
                 """
-✅ <b>Sua conta foi desbloqueada.</b>
+✅ Sua conta foi desbloqueada.
 
-Agora você pode utilizar o bot normalmente.
-""",
-
-                parse_mode="HTML"
+Bem-vindo novamente.
+"""
 
             )
 
-        except Exception as erro:
+        except:
 
-            print(erro)
+            pass
 
         bot.reply_to(
+
             message,
+
             "✅ Usuário desbloqueado."
         )    # ======================================
-    # CONFIGURAÇÕES
+    # ADICIONAR SALDO
     # ======================================
 
-    @bot.message_handler(commands=["config"])
-    def configuracoes(message):
+    @bot.message_handler(commands=["addsaldo"])
+    def adicionar_saldo_admin(message):
 
-        if not eh_admin(message.from_user.id):
-            return
-
-        cursor.execute(
-            """
-            SELECT chave, valor
-
-            FROM configuracoes
-
-            ORDER BY chave
-            """
-        )
-
-        configuracoes = cursor.fetchall()
-
-        texto = "⚙️ <b>CONFIGURAÇÕES DO BOT</b>\n\n"
-
-        for chave, valor in configuracoes:
-
-            texto += f"• <b>{chave}</b>: {valor}\n"
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
-
-            parse_mode="HTML"
-
-        )
-
-    # ======================================
-    # ALTERAR CONFIGURAÇÃO
-    # ======================================
-
-    @bot.message_handler(commands=["setconfig"])
-    def alterar_config(message):
-
-        if not eh_admin(message.from_user.id):
+        if message.from_user.id != ADMIN_ID:
             return
 
         try:
 
-            dados = message.text.split(maxsplit=2)
+            _, usuario, valor = message.text.split()
 
-            chave = dados[1]
+            usuario = int(usuario)
 
-            valor = dados[2]
+            valor = float(valor.replace(",", "."))
 
         except:
 
@@ -865,7 +308,7 @@ Agora você pode utilizar o bot normalmente.
 
                 message,
 
-                "Use:\n/setconfig chave valor"
+                "Use:\n\n/addsaldo ID VALOR"
 
             )
 
@@ -873,103 +316,87 @@ Agora você pode utilizar o bot normalmente.
 
         cursor.execute(
             """
-            UPDATE configuracoes
+            UPDATE usuarios
 
-            SET valor=?
+            SET saldo = saldo + ?
 
-            WHERE chave=?
+            WHERE id=?
             """,
             (
                 valor,
-                chave
+                usuario
             )
         )
 
         conn.commit()
 
-        bot.reply_to(
+        adicionar_historico(
 
-            message,
+            usuario,
 
-            "✅ Configuração atualizada."
+            "ADMIN",
 
-        )
+            "Saldo adicionado pelo administrador",
 
-    # ======================================
-    # LIBERAR SAQUES
-    # ======================================
-
-    @bot.message_handler(commands=["liberarsaque"])
-    def liberar_saque(message):
-
-        if not eh_admin(message.from_user.id):
-            return
-
-        cursor.execute(
-            """
-            UPDATE configuracoes
-
-            SET valor='SIM'
-
-            WHERE chave='saque_liberado'
-            """
-        )
-
-        conn.commit()
-
-        bot.reply_to(
-
-            message,
-
-            "✅ Saques liberados."
+            valor
 
         )
 
-    # ======================================
-    # BLOQUEAR SAQUES
-    # ======================================
+        adicionar_log(
 
-    @bot.message_handler(commands=["bloquearsaque"])
-    def bloquear_saque(message):
+            ADMIN_ID,
 
-        if not eh_admin(message.from_user.id):
-            return
+            "ADD SALDO",
 
-        cursor.execute(
-            """
-            UPDATE configuracoes
+            f"Usuário {usuario} recebeu R$ {valor:.2f}"
 
-            SET valor='NAO'
-
-            WHERE chave='saque_liberado'
-            """
         )
 
-        conn.commit()
+        try:
+
+            bot.send_message(
+
+                usuario,
+
+                f"""
+💰 Você recebeu um bônus.
+
+Valor:
+
+R$ {valor:.2f}
+"""
+
+            )
+
+        except:
+
+            pass
 
         bot.reply_to(
 
             message,
 
-            "⛔ Saques bloqueados."
+            "✅ Saldo adicionado."
 
         )
 
     # ======================================
-    # HISTÓRICO
+    # REMOVER SALDO
     # ======================================
 
-    @bot.message_handler(commands=["historico"])
-    def historico(message):
+    @bot.message_handler(commands=["removersaldo"])
+    def remover_saldo_admin(message):
 
-        if not eh_admin(message.from_user.id):
+        if message.from_user.id != ADMIN_ID:
             return
 
         try:
 
-            usuario = int(
-                message.text.split()[1]
-            )
+            _, usuario, valor = message.text.split()
+
+            usuario = int(usuario)
+
+            valor = float(valor.replace(",", "."))
 
         except:
 
@@ -977,56 +404,118 @@ Agora você pode utilizar o bot normalmente.
 
                 message,
 
-                "Use:\n/historico ID"
+                "Use:\n\n/removersaldo ID VALOR"
 
             )
 
+            return
+
+        cursor.execute(
+            """
+            UPDATE usuarios
+
+            SET saldo = saldo - ?
+
+            WHERE id=?
+            """,
+            (
+                valor,
+                usuario
+            )
+        )
+
+        conn.commit()
+
+        adicionar_historico(
+
+            usuario,
+
+            "ADMIN",
+
+            "Saldo removido pelo administrador",
+
+            valor
+
+        )
+
+        adicionar_log(
+
+            ADMIN_ID,
+
+            "REMOVER SALDO",
+
+            f"Usuário {usuario} perdeu R$ {valor:.2f}"
+
+        )
+
+        try:
+
+            bot.send_message(
+
+                usuario,
+
+                f"""
+⚠️ O administrador removeu:
+
+R$ {valor:.2f}
+
+do seu saldo.
+"""
+
+            )
+
+        except:
+
+            pass
+
+        bot.reply_to(
+
+            message,
+
+            "✅ Saldo removido."
+
+        )
+
+    # ======================================
+    # RANKING
+    # ======================================
+
+    @bot.message_handler(commands=["ranking"])
+    def ranking(message):
+
+        if message.from_user.id != ADMIN_ID:
             return
 
         cursor.execute(
             """
             SELECT
 
-                tipo,
-                descricao,
-                valor,
-                data
+                nome,
+                convidados,
+                saldo
 
-            FROM historico
+            FROM usuarios
 
-            WHERE usuario=?
+            ORDER BY convidados DESC
 
-            ORDER BY id DESC
-
-            LIMIT 20
-            """,
-            (usuario,)
+            LIMIT 10
+            """
         )
 
-        historico = cursor.fetchall()
+        ranking = cursor.fetchall()
 
-        if len(historico) == 0:
+        texto = "🏆 <b>TOP 10 INDICADORES</b>\n\n"
 
-            bot.send_message(
+        posicao = 1
 
-                message.chat.id,
-
-                "Nenhum histórico encontrado."
-
-            )
-
-            return
-
-        texto = f"📜 <b>HISTÓRICO DO USUÁRIO {usuario}</b>\n\n"
-
-        for registro in historico:
+        for nome, convidados, saldo in ranking:
 
             texto += (
-                f"📌 <b>{registro[0]}</b>\n"
-                f"{registro[1]}\n"
-                f"💰 R$ {registro[2]:.2f}\n"
-                f"📅 {registro[3]}\n\n"
+                f"{posicao}º - {nome}\n"
+                f"👥 {convidados} | 💰 R$ {saldo:.2f}\n\n"
             )
+
+            posicao += 1
 
         bot.send_message(
 
@@ -1037,3 +526,547 @@ Agora você pode utilizar o bot normalmente.
             parse_mode="HTML"
 
         )
+
+    # ======================================
+    # TOTAL DE USUÁRIOS
+    # ======================================
+
+    @bot.message_handler(commands=["usuarios"])
+    def total_usuarios(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        cursor.execute(
+            "SELECT COUNT(*) FROM usuarios"
+        )
+
+        total = cursor.fetchone()[0]
+
+        bot.send_message(
+
+            message.chat.id,
+
+            f"""
+👥 Usuários cadastrados:
+
+<b>{total}</b>
+""",
+
+            parse_mode="HTML"
+
+        )    # ======================================
+    # MANUTENÇÃO
+    # ======================================
+
+    @bot.message_handler(commands=["manutencao"])
+    def manutencao(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        try:
+
+            opcao = message.text.split()[1].lower()
+
+        except:
+
+            bot.reply_to(
+
+                message,
+
+                "Use:\n\n/manutencao on\n/manutencao off"
+
+            )
+
+            return
+
+        if opcao == "on":
+
+            alterar_config(
+
+                "modo_manutencao",
+
+                "SIM"
+
+            )
+
+            adicionar_log(
+
+                ADMIN_ID,
+
+                "MANUTENÇÃO",
+
+                "Modo manutenção ativado."
+
+            )
+
+            bot.reply_to(
+
+                message,
+
+                "✅ Manutenção ativada."
+
+            )
+
+            return
+
+        if opcao == "off":
+
+            alterar_config(
+
+                "modo_manutencao",
+
+                "NAO"
+
+            )
+
+            adicionar_log(
+
+                ADMIN_ID,
+
+                "MANUTENÇÃO",
+
+                "Modo manutenção desativado."
+
+            )
+
+            bot.reply_to(
+
+                message,
+
+                "✅ Manutenção desativada."
+
+            )
+
+            return
+
+        bot.reply_to(
+
+            message,
+
+            "Use apenas on ou off."
+
+        )
+
+    # ======================================
+    # LOGS
+    # ======================================
+
+    @bot.message_handler(commands=["logs"])
+    def logs(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        cursor.execute(
+            """
+            SELECT
+
+                usuario,
+
+                acao,
+
+                detalhes,
+
+                data
+
+            FROM logs
+
+            ORDER BY id DESC
+
+            LIMIT 20
+            """
+        )
+
+        registros = cursor.fetchall()
+
+        if len(registros) == 0:
+
+            bot.reply_to(
+
+                message,
+
+                "Nenhum log encontrado."
+
+            )
+
+            return
+
+        texto = "📋 <b>ÚLTIMOS LOGS</b>\n\n"
+
+        for usuario, acao, detalhes, data in registros:
+
+            texto += f"""
+👤 {usuario}
+
+📌 {acao}
+
+📝 {detalhes}
+
+📅 {data}
+
+──────────────
+
+"""
+
+        bot.send_message(
+
+            message.chat.id,
+
+            texto,
+
+            parse_mode="HTML"
+
+        )
+
+    # ======================================
+    # AVISAR
+    # ======================================
+
+    @bot.message_handler(commands=["avisar"])
+    def avisar(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        texto = message.text.replace(
+
+            "/avisar",
+
+            ""
+
+        ).strip()
+
+        if texto == "":
+
+            bot.reply_to(
+
+                message,
+
+                "Use:\n\n/avisar sua mensagem"
+
+            )
+
+            return
+
+        cursor.execute(
+
+            "SELECT id FROM usuarios"
+
+        )
+
+        usuarios = cursor.fetchall()
+
+        enviados = 0
+
+        for usuario in usuarios:
+
+            try:
+
+                bot.send_message(
+
+                    usuario[0],
+
+                    f"📢 {texto}"
+
+                )
+
+                enviados += 1
+
+            except:
+
+                pass
+
+        adicionar_log(
+
+            ADMIN_ID,
+
+            "AVISO",
+
+            texto
+
+        )
+
+        bot.reply_to(
+
+            message,
+
+            f"✅ Aviso enviado para {enviados} usuários."
+
+        )    # ======================================
+    # BACKUP DO BANCO
+    # ======================================
+
+    @bot.message_handler(commands=["backup"])
+    def backup(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        try:
+
+            with open("database.db", "rb") as banco:
+
+                bot.send_document(
+
+                    message.chat.id,
+
+                    banco,
+
+                    caption="💾 Backup do banco de dados."
+
+                )
+
+            adicionar_log(
+
+                ADMIN_ID,
+
+                "BACKUP",
+
+                "Backup realizado."
+
+            )
+
+        except Exception as erro:
+
+            bot.reply_to(
+
+                message,
+
+                f"Erro:\n{erro}"
+
+            )
+
+    # ======================================
+    # CRIAR CUPOM
+    # ======================================
+
+    @bot.message_handler(commands=["criarcupom"])
+    def criar_cupom(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        try:
+
+            _, codigo, valor, limite = message.text.split()
+
+            valor = float(valor.replace(",", "."))
+
+            limite = int(limite)
+
+        except:
+
+            bot.reply_to(
+
+                message,
+
+                "Use:\n\n/criarcupom CODIGO VALOR LIMITE"
+
+            )
+
+            return
+
+        try:
+
+            cursor.execute(
+
+                """
+                INSERT INTO cupons(
+
+                    codigo,
+
+                    valor,
+
+                    limite,
+
+                    usados,
+
+                    ativo
+
+                )
+
+                VALUES(
+
+                    ?,?,?,0,1
+
+                )
+                """,
+
+                (
+
+                    codigo.upper(),
+
+                    valor,
+
+                    limite
+
+                )
+
+            )
+
+            conn.commit()
+
+            adicionar_log(
+
+                ADMIN_ID,
+
+                "CUPOM",
+
+                f"Cupom {codigo} criado."
+
+            )
+
+            bot.reply_to(
+
+                message,
+
+                "✅ Cupom criado."
+
+            )
+
+        except:
+
+            bot.reply_to(
+
+                message,
+
+                "❌ Este cupom já existe."
+
+            )
+
+    # ======================================
+    # REMOVER CUPOM
+    # ======================================
+
+    @bot.message_handler(commands=["removercupom"])
+    def remover_cupom(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        try:
+
+            codigo = message.text.split()[1]
+
+        except:
+
+            bot.reply_to(
+
+                message,
+
+                "Use:\n\n/removercupom CODIGO"
+
+            )
+
+            return
+
+        cursor.execute(
+
+            """
+            DELETE FROM cupons
+
+            WHERE codigo=?
+            """,
+
+            (
+
+                codigo.upper(),
+
+            )
+
+        )
+
+        conn.commit()
+
+        adicionar_log(
+
+            ADMIN_ID,
+
+            "REMOVER CUPOM",
+
+            codigo.upper()
+
+        )
+
+        bot.reply_to(
+
+            message,
+
+            "✅ Cupom removido."
+
+        )
+
+    # ======================================
+    # SAQUES PENDENTES
+    # ======================================
+
+    @bot.message_handler(commands=["pendentes"])
+    def pendentes(message):
+
+        if message.from_user.id != ADMIN_ID:
+            return
+
+        cursor.execute(
+
+            """
+            SELECT
+
+                id,
+
+                usuario,
+
+                valor
+
+            FROM saques
+
+            WHERE status='PENDENTE'
+
+            ORDER BY id
+            """
+
+        )
+
+        saques = cursor.fetchall()
+
+        if len(saques) == 0:
+
+            bot.reply_to(
+
+                message,
+
+                "Nenhum saque pendente."
+
+            )
+
+            return
+
+        texto = "💸 <b>SAQUES PENDENTES</b>\n\n"
+
+        for saque in saques:
+
+            texto += f"""
+🆔 {saque[0]}
+
+👤 {saque[1]}
+
+💰 R$ {saque[2]:.2f}
+
+──────────────
+
+"""
+
+        bot.send_message(
+
+            message.chat.id,
+
+            texto,
+
+            parse_mode="HTML"
+
+        )
+
+    # ======================================
+    # FIM DO MÓDULO
+    # ======================================
