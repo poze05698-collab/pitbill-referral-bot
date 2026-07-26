@@ -2,11 +2,11 @@ import telebot
 
 from datetime import datetime
 
-from config import *
+from config import ADMIN_ID
 from database import conn, cursor
 
 # ==========================================
-# REGISTRAR COMANDOS ADMIN
+# REGISTRAR MÓDULO ADMIN
 # ==========================================
 
 def registrar_admin(bot):
@@ -16,6 +16,7 @@ def registrar_admin(bot):
     # ======================================
 
     def eh_admin(user_id):
+
         return user_id == ADMIN_ID
 
     # ======================================
@@ -26,6 +27,7 @@ def registrar_admin(bot):
     def painel_admin(message):
 
         if not eh_admin(message.from_user.id):
+
             return
 
         texto = """
@@ -33,31 +35,43 @@ def registrar_admin(bot):
 
 Comandos disponíveis:
 
-/usuarios
-/estatisticas
-/pedidos
-/aprovar
-/rejeitar
-/addsaldo
-/ranking
-/banir
-/desbanir
+📊 /estatisticas
+👥 /usuarios
+
+💸 /pedidos
+✅ /aprovar ID
+❌ /rejeitar ID
+
+💰 /addsaldo ID VALOR
+
+🏆 /ranking
+
+🚫 /banir ID
+✅ /desbanir ID
+
+⚙️ /config
+📜 /historico ID
 """
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML"
+
         )
 
     # ======================================
-    # TOTAL USUÁRIOS
+    # TOTAL DE USUÁRIOS
     # ======================================
 
     @bot.message_handler(commands=["usuarios"])
     def usuarios(message):
 
         if not eh_admin(message.from_user.id):
+
             return
 
         cursor.execute(
@@ -67,8 +81,19 @@ Comandos disponíveis:
         total = cursor.fetchone()[0]
 
         bot.send_message(
+
             message.chat.id,
-            f"👥 Total de usuários: {total}"
+
+            f"""
+👥 <b>USUÁRIOS CADASTRADOS</b>
+
+Total:
+
+<b>{total}</b>
+""",
+
+            parse_mode="HTML"
+
         )
 
     # ======================================
@@ -79,47 +104,70 @@ Comandos disponíveis:
     def estatisticas(message):
 
         if not eh_admin(message.from_user.id):
+
             return
 
         cursor.execute(
             "SELECT COUNT(*) FROM usuarios"
         )
 
-        usuarios = cursor.fetchone()[0]
+        total_usuarios = cursor.fetchone()[0]
 
         cursor.execute(
             "SELECT COUNT(*) FROM saques"
         )
 
-        saques = cursor.fetchone()[0]
+        total_saques = cursor.fetchone()[0]
 
         cursor.execute(
             """
             SELECT IFNULL(SUM(valor),0)
+
             FROM saques
+
             WHERE status='APROVADO'
             """
         )
 
         total_pago = cursor.fetchone()[0]
 
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+
+            FROM indicacoes
+
+            WHERE status='APROVADA'
+            """
+        )
+
+        indicacoes = cursor.fetchone()[0]
+
         texto = f"""
-📊 <b>ESTATÍSTICAS</b>
+📊 <b>ESTATÍSTICAS DO BOT</b>
 
 👥 Usuários:
-{usuarios}
+<b>{total_usuarios}</b>
 
-💸 Saques:
-{saques}
+👤 Indicações aprovadas:
+<b>{indicacoes}</b>
 
-💰 Total Pago:
-R$ {total_pago:.2f}
+💸 Total de saques:
+<b>{total_saques}</b>
+
+💰 Total pago:
+
+<b>R$ {total_pago:.2f}</b>
 """
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML"
+
         )    # ======================================
     # PEDIDOS DE SAQUE
     # ======================================
@@ -133,42 +181,66 @@ R$ {total_pago:.2f}
         cursor.execute(
             """
             SELECT
-            id,
-            usuario,
-            valor,
-            data
+
+                id,
+                usuario,
+                valor,
+                pix,
+                data
+
             FROM saques
+
             WHERE status='PENDENTE'
-            ORDER BY id
+
+            ORDER BY id ASC
             """
         )
 
-        pedidos = cursor.fetchall()
+        saques = cursor.fetchall()
 
-        if not pedidos:
+        if len(saques) == 0:
 
             bot.send_message(
+
                 message.chat.id,
+
                 "✅ Não existem saques pendentes."
+
             )
 
             return
 
         texto = "📋 <b>SAQUES PENDENTES</b>\n\n"
 
-        for pedido in pedidos:
+        for saque in saques:
 
-            texto += (
-                f"🆔 ID: <code>{pedido[0]}</code>\n"
-                f"👤 Usuário: <code>{pedido[1]}</code>\n"
-                f"💰 Valor: R$ {pedido[2]:.2f}\n"
-                f"📅 Data: {pedido[3]}\n\n"
-            )
+            texto += f"""
+🆔 ID: <code>{saque[0]}</code>
+
+👤 Usuário:
+<code>{saque[1]}</code>
+
+💰 Valor:
+<b>R$ {saque[2]:.2f}</b>
+
+💳 Pix:
+<code>{saque[3]}</code>
+
+📅 Data:
+{saque[4]}
+
+──────────────
+
+"""
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML"
+
         )
 
     # ======================================
@@ -199,10 +271,13 @@ R$ {total_pago:.2f}
         cursor.execute(
             """
             SELECT
-            usuario,
-            valor,
-            status
+
+                usuario,
+                valor,
+                status
+
             FROM saques
+
             WHERE id=?
             """,
             (saque_id,)
@@ -210,7 +285,7 @@ R$ {total_pago:.2f}
 
         saque = cursor.fetchone()
 
-        if not saque:
+        if saque is None:
 
             bot.reply_to(
                 message,
@@ -233,7 +308,9 @@ R$ {total_pago:.2f}
         cursor.execute(
             """
             UPDATE saques
+
             SET status='APROVADO'
+
             WHERE id=?
             """,
             (saque_id,)
@@ -242,7 +319,9 @@ R$ {total_pago:.2f}
         cursor.execute(
             """
             UPDATE usuarios
+
             SET saldo = saldo - ?
+
             WHERE id=?
             """,
             (
@@ -289,21 +368,29 @@ R$ {total_pago:.2f}
                 usuario,
 
                 f"""
-✅ Seu saque foi aprovado.
+✅ <b>Seu saque foi aprovado!</b>
 
 💰 Valor:
 
-R$ {valor:.2f}
-"""
+<b>R$ {valor:.2f}</b>
+
+Em breve o pagamento será realizado.
+""",
+
+                parse_mode="HTML"
 
             )
 
-        except:
-            pass
+        except Exception as erro:
+
+            print(erro)
 
         bot.reply_to(
+
             message,
-            "✅ Saque aprovado."
+
+            "✅ Saque aprovado com sucesso."
+
         )
 
     # ======================================
@@ -334,10 +421,13 @@ R$ {valor:.2f}
         cursor.execute(
             """
             SELECT
-            usuario,
-            valor,
-            status
+
+                usuario,
+                valor,
+                status
+
             FROM saques
+
             WHERE id=?
             """,
             (saque_id,)
@@ -345,7 +435,7 @@ R$ {valor:.2f}
 
         saque = cursor.fetchone()
 
-        if not saque:
+        if saque is None:
 
             bot.reply_to(
                 message,
@@ -368,7 +458,9 @@ R$ {valor:.2f}
         cursor.execute(
             """
             UPDATE saques
+
             SET status='REJEITADO'
+
             WHERE id=?
             """,
             (saque_id,)
@@ -383,27 +475,35 @@ R$ {valor:.2f}
                 usuario,
 
                 f"""
-❌ Seu saque foi rejeitado.
+❌ <b>Seu saque foi rejeitado.</b>
 
 💰 Valor:
 
-R$ {valor:.2f}
-"""
+<b>R$ {valor:.2f}</b>
+
+Entre em contato com o suporte caso tenha dúvidas.
+""",
+
+                parse_mode="HTML"
 
             )
 
-        except:
-            pass
+        except Exception as erro:
+
+            print(erro)
 
         bot.reply_to(
+
             message,
+
             "❌ Saque rejeitado."
+
         )    # ======================================
     # ADICIONAR SALDO
     # ======================================
 
     @bot.message_handler(commands=["addsaldo"])
-    def addsaldo(message):
+    def adicionar_saldo(message):
 
         if not eh_admin(message.from_user.id):
             return
@@ -429,8 +529,30 @@ R$ {valor:.2f}
 
         cursor.execute(
             """
+            SELECT id
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
+            (usuario,)
+        )
+
+        if cursor.fetchone() is None:
+
+            bot.reply_to(
+                message,
+                "❌ Usuário não encontrado."
+            )
+
+            return
+
+        cursor.execute(
+            """
             UPDATE usuarios
+
             SET saldo = saldo + ?
+
             WHERE id=?
             """,
             (
@@ -462,9 +584,7 @@ R$ {valor:.2f}
                 "BONUS",
                 "Saldo adicionado pelo administrador",
                 valor,
-                datetime.now().strftime(
-                    "%d/%m/%Y %H:%M"
-                )
+                datetime.now().strftime("%d/%m/%Y %H:%M")
             )
         )
 
@@ -477,17 +597,20 @@ R$ {valor:.2f}
                 usuario,
 
                 f"""
-🎁 Você recebeu um bônus!
+🎁 <b>Você recebeu um bônus!</b>
 
 💰 Valor:
 
-R$ {valor:.2f}
-"""
+<b>R$ {valor:.2f}</b>
+""",
+
+                parse_mode="HTML"
 
             )
 
-        except:
-            pass
+        except Exception as erro:
+
+            print(erro)
 
         bot.reply_to(
             message,
@@ -508,13 +631,14 @@ R$ {valor:.2f}
             """
             SELECT
 
-            nome,
-            convidados,
-            saldo
+                nome,
+                convidados,
+                saldo
 
             FROM usuarios
 
-            ORDER BY convidados DESC
+            ORDER BY convidados DESC,
+                     saldo DESC
 
             LIMIT 10
             """
@@ -531,14 +655,14 @@ R$ {valor:.2f}
 
             return
 
-        texto = "🏆 TOP 10 INDICAÇÕES\n\n"
+        texto = "🏆 <b>TOP 10 INDICAÇÕES</b>\n\n"
 
         posicao = 1
 
         for usuario in ranking:
 
             texto += (
-                f"{posicao}º - {usuario[0]}\n"
+                f"{posicao}º - <b>{usuario[0]}</b>\n"
                 f"👥 {usuario[1]} indicados\n"
                 f"💰 R$ {usuario[2]:.2f}\n\n"
             )
@@ -546,12 +670,17 @@ R$ {valor:.2f}
             posicao += 1
 
         bot.send_message(
+
             message.chat.id,
-            texto
+
+            texto,
+
+            parse_mode="HTML"
+
         )
 
     # ======================================
-    # BANIR USUÁRIO
+    # BANIR
     # ======================================
 
     @bot.message_handler(commands=["banir"])
@@ -595,15 +724,18 @@ R$ {valor:.2f}
                 usuario,
 
                 """
-🚫 Sua conta foi bloqueada.
+🚫 <b>Sua conta foi bloqueada.</b>
 
 Entre em contato com o suporte.
-"""
+""",
+
+                parse_mode="HTML"
 
             )
 
-        except:
-            pass
+        except Exception as erro:
+
+            print(erro)
 
         bot.reply_to(
             message,
@@ -648,6 +780,26 @@ Entre em contato com o suporte.
 
         conn.commit()
 
+        try:
+
+            bot.send_message(
+
+                usuario,
+
+                """
+✅ <b>Sua conta foi desbloqueada.</b>
+
+Agora você pode utilizar o bot normalmente.
+""",
+
+                parse_mode="HTML"
+
+            )
+
+        except Exception as erro:
+
+            print(erro)
+
         bot.reply_to(
             message,
             "✅ Usuário desbloqueado."
@@ -664,23 +816,29 @@ Entre em contato com o suporte.
         cursor.execute(
             """
             SELECT chave, valor
+
             FROM configuracoes
+
             ORDER BY chave
             """
         )
 
-        configs = cursor.fetchall()
+        configuracoes = cursor.fetchall()
 
-        texto = "⚙️ <b>CONFIGURAÇÕES</b>\n\n"
+        texto = "⚙️ <b>CONFIGURAÇÕES DO BOT</b>\n\n"
 
-        for chave, valor in configs:
+        for chave, valor in configuracoes:
 
             texto += f"• <b>{chave}</b>: {valor}\n"
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML"
+
         )
 
     # ======================================
@@ -688,7 +846,7 @@ Entre em contato com o suporte.
     # ======================================
 
     @bot.message_handler(commands=["setconfig"])
-    def setconfig(message):
+    def alterar_config(message):
 
         if not eh_admin(message.from_user.id):
             return
@@ -698,13 +856,17 @@ Entre em contato com o suporte.
             dados = message.text.split(maxsplit=2)
 
             chave = dados[1]
+
             valor = dados[2]
 
         except:
 
             bot.reply_to(
+
                 message,
+
                 "Use:\n/setconfig chave valor"
+
             )
 
             return
@@ -726,12 +888,15 @@ Entre em contato com o suporte.
         conn.commit()
 
         bot.reply_to(
+
             message,
+
             "✅ Configuração atualizada."
+
         )
 
     # ======================================
-    # ATIVAR SAQUES
+    # LIBERAR SAQUES
     # ======================================
 
     @bot.message_handler(commands=["liberarsaque"])
@@ -753,8 +918,11 @@ Entre em contato com o suporte.
         conn.commit()
 
         bot.reply_to(
+
             message,
+
             "✅ Saques liberados."
+
         )
 
     # ======================================
@@ -780,12 +948,15 @@ Entre em contato com o suporte.
         conn.commit()
 
         bot.reply_to(
+
             message,
+
             "⛔ Saques bloqueados."
+
         )
 
     # ======================================
-    # HISTÓRICO USUÁRIO
+    # HISTÓRICO
     # ======================================
 
     @bot.message_handler(commands=["historico"])
@@ -803,8 +974,11 @@ Entre em contato com o suporte.
         except:
 
             bot.reply_to(
+
                 message,
+
                 "Use:\n/historico ID"
+
             )
 
             return
@@ -812,10 +986,11 @@ Entre em contato com o suporte.
         cursor.execute(
             """
             SELECT
-            tipo,
-            descricao,
-            valor,
-            data
+
+                tipo,
+                descricao,
+                valor,
+                data
 
             FROM historico
 
@@ -828,29 +1003,37 @@ Entre em contato com o suporte.
             (usuario,)
         )
 
-        registros = cursor.fetchall()
+        historico = cursor.fetchall()
 
-        if not registros:
+        if len(historico) == 0:
 
             bot.send_message(
+
                 message.chat.id,
+
                 "Nenhum histórico encontrado."
+
             )
 
             return
 
-        texto = f"📜 Histórico do usuário {usuario}\n\n"
+        texto = f"📜 <b>HISTÓRICO DO USUÁRIO {usuario}</b>\n\n"
 
-        for tipo, descricao, valor, data in registros:
+        for registro in historico:
 
             texto += (
-                f"📌 {tipo}\n"
-                f"{descricao}\n"
-                f"💰 R$ {valor:.2f}\n"
-                f"📅 {data}\n\n"
+                f"📌 <b>{registro[0]}</b>\n"
+                f"{registro[1]}\n"
+                f"💰 R$ {registro[2]:.2f}\n"
+                f"📅 {registro[3]}\n\n"
             )
 
         bot.send_message(
+
             message.chat.id,
-            texto
+
+            texto,
+
+            parse_mode="HTML"
+
         )
