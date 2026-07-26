@@ -1,9 +1,16 @@
 import sqlite3
 
+# ==========================================
+# CONEXÃO
+# ==========================================
+
 conn = sqlite3.connect(
     "database.db",
     check_same_thread=False
 )
+
+# Ativa as chaves estrangeiras
+conn.execute("PRAGMA foreign_keys = ON")
 
 cursor = conn.cursor()
 
@@ -54,7 +61,10 @@ CREATE TABLE IF NOT EXISTS saques(
 
     status TEXT,
 
-    data TEXT
+    data TEXT,
+
+    FOREIGN KEY(usuario)
+    REFERENCES usuarios(id)
 
 )
 """)
@@ -76,7 +86,13 @@ CREATE TABLE IF NOT EXISTS indicacoes(
 
     status TEXT,
 
-    data TEXT
+    data TEXT,
+
+    FOREIGN KEY(indicador)
+    REFERENCES usuarios(id),
+
+    FOREIGN KEY(indicado)
+    REFERENCES usuarios(id)
 
 )
 """)
@@ -98,13 +114,16 @@ CREATE TABLE IF NOT EXISTS historico(
 
     valor REAL,
 
-    data TEXT
+    data TEXT,
+
+    FOREIGN KEY(usuario)
+    REFERENCES usuarios(id)
 
 )
 """)
 
 # ==========================================
-# BLOQUEADOS
+# USUÁRIOS BLOQUEADOS
 # ==========================================
 
 cursor.execute("""
@@ -116,7 +135,33 @@ CREATE TABLE IF NOT EXISTS usuarios_bloqueados(
 
     motivo TEXT,
 
-    data TEXT
+    data TEXT,
+
+    FOREIGN KEY(usuario)
+    REFERENCES usuarios(id)
+
+)
+""")
+
+# ==========================================
+# LOGS
+# ==========================================
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS logs(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario INTEGER,
+
+    acao TEXT,
+
+    descricao TEXT,
+
+    data TEXT,
+
+    FOREIGN KEY(usuario)
+    REFERENCES usuarios(id)
 
 )
 """)
@@ -135,6 +180,10 @@ CREATE TABLE IF NOT EXISTS configuracoes(
 )
 """)
 
+# ==========================================
+# ÍNDICES
+# ==========================================
+
 cursor.execute(
     "CREATE INDEX IF NOT EXISTS idx_saques_usuario ON saques(usuario)"
 )
@@ -150,6 +199,14 @@ cursor.execute(
 cursor.execute(
     "CREATE INDEX IF NOT EXISTS idx_historico ON historico(usuario)"
 )
+
+cursor.execute(
+    "CREATE INDEX IF NOT EXISTS idx_logs_usuario ON logs(usuario)"
+)
+
+# ==========================================
+# CONFIGURAÇÕES PADRÃO
+# ==========================================
 
 cursor.execute(
     "INSERT OR IGNORE INTO configuracoes VALUES ('valor_indicacao','1.00')"
@@ -170,5 +227,13 @@ cursor.execute(
 cursor.execute(
     "INSERT OR IGNORE INTO configuracoes VALUES ('pix_obrigatorio','SIM')"
 )
+
+cursor.execute(
+    "INSERT OR IGNORE INTO configuracoes VALUES ('versao','2.0.0')"
+)
+
+# ==========================================
+# SALVAR ALTERAÇÕES
+# ==========================================
 
 conn.commit()
