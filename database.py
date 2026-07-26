@@ -1,26 +1,35 @@
 import sqlite3
 
+
 # ==========================================
-# CONEXÃO
+# CONEXÃO BANCO
 # ==========================================
 
 conn = sqlite3.connect(
+
     "database.db",
+
     check_same_thread=False
+
 )
 
+
 cursor = conn.cursor()
+
+
 
 # ==========================================
 # TABELA USUÁRIOS
 # ==========================================
 
-cursor.execute("""
+cursor.execute(
+
+"""
 CREATE TABLE IF NOT EXISTS usuarios(
 
     id INTEGER PRIMARY KEY,
 
-    nome TEXT NOT NULL,
+    nome TEXT,
 
     username TEXT,
 
@@ -30,24 +39,27 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     convidados INTEGER DEFAULT 0,
 
-    convidado_por INTEGER,
-
     bloqueado INTEGER DEFAULT 0,
-
-    admin INTEGER DEFAULT 0,
 
     data_cadastro TEXT,
 
     ultimo_acesso TEXT
 
 )
-""")
+
+"""
+
+)
+
+
 
 # ==========================================
 # TABELA INDICAÇÕES
 # ==========================================
 
-cursor.execute("""
+cursor.execute(
+
+"""
 CREATE TABLE IF NOT EXISTS indicacoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,13 +75,20 @@ CREATE TABLE IF NOT EXISTS indicacoes(
     data TEXT
 
 )
-""")
+
+"""
+
+)
+
+
 
 # ==========================================
 # TABELA SAQUES
 # ==========================================
 
-cursor.execute("""
+cursor.execute(
+
+"""
 CREATE TABLE IF NOT EXISTS saques(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,13 +108,20 @@ CREATE TABLE IF NOT EXISTS saques(
     data_aprovacao TEXT
 
 )
-""")
 
-# ==========================================
-# HISTÓRICO
+"""
+
+)
+
+
+
+conn.commit()# ==========================================
+# TABELA HISTÓRICO
 # ==========================================
 
-cursor.execute("""
+cursor.execute(
+
+"""
 CREATE TABLE IF NOT EXISTS historico(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,13 +137,20 @@ CREATE TABLE IF NOT EXISTS historico(
     data TEXT
 
 )
-""")
+
+"""
+
+)
+
+
 
 # ==========================================
-# LOGS
+# TABELA LOGS
 # ==========================================
 
-cursor.execute("""
+cursor.execute(
+
+"""
 CREATE TABLE IF NOT EXISTS logs(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,63 +164,20 @@ CREATE TABLE IF NOT EXISTS logs(
     data TEXT
 
 )
-""")
 
-# ==========================================
-# CONFIGURAÇÕES
-# ==========================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS configuracoes(
-
-    chave TEXT PRIMARY KEY,
-
-    valor TEXT
+"""
 
 )
-""")
+
+
 
 # ==========================================
-# BACKUPS
+# TABELA CUPONS
 # ==========================================
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS backups(
+cursor.execute(
 
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    nome TEXT,
-
-    data TEXT
-
-)
-""")
-
-# ==========================================
-# NOTIFICAÇÕES
-# ==========================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS notificacoes(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER,
-
-    mensagem TEXT,
-
-    lida INTEGER DEFAULT 0,
-
-    data TEXT
-
-)
-""")
-
-# ==========================================
-# CUPONS
-# ==========================================
-
-cursor.execute("""
+"""
 CREATE TABLE IF NOT EXISTS cupons(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,75 +193,67 @@ CREATE TABLE IF NOT EXISTS cupons(
     ativo INTEGER DEFAULT 1
 
 )
-""")
+
+"""
+
+)
+
+
 
 # ==========================================
-# ÍNDICES
+# TABELA CONFIGURAÇÕES
 # ==========================================
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario
-ON usuarios(id)
-""")
+cursor.execute(
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_indicador
-ON indicacoes(indicador)
-""")
+"""
+CREATE TABLE IF NOT EXISTS configuracoes(
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_indicado
-ON indicacoes(indicado)
-""")
+    chave TEXT PRIMARY KEY,
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_saque
-ON saques(usuario)
-""")
+    valor TEXT
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_historico
-ON historico(usuario)
-""")
+)
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_logs
-ON logs(usuario)
-""")
+"""
+
+)
+
+
 
 # ==========================================
-# CONFIGURAÇÕES PADRÃO
+# CONFIGURAÇÕES INICIAIS
 # ==========================================
 
-configuracoes = [
+cursor.execute(
 
-    ("valor_indicacao", "1.00"),
+"""
+INSERT OR IGNORE INTO configuracoes(
 
-    ("valor_minimo_saque", "15.00"),
+    chave,
 
-    ("grupo_obrigatorio", "SIM"),
+    valor
 
-    ("pix_obrigatorio", "SIM"),
+)
 
-    ("anti_fraude", "SIM"),
+VALUES
 
-    ("modo_manutencao", "NAO"),
+('modo_manutencao','NAO')
 
-    ("saques_liberados", "SIM")
+"""
 
-]
+)
 
-for chave, valor in configuracoes:
 
-    cursor.execute(
 
-        """
-        INSERT OR IGNORE INTO configuracoes
-        VALUES(?,?)
-        """,
-
-        (chave, valor)
-
-    )
+# ==========================================
+# SALVAR BANCO
+# ==========================================
 
 conn.commit()
+
+
+
+print(
+    "Banco de dados carregado com sucesso."
+)
