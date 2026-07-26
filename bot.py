@@ -1,26 +1,37 @@
 import telebot
-import time
 
-from config import TOKEN
 
-# ==========================================
-# BANCO
-# ==========================================
+from config import (
+    TOKEN
+)
 
-from database import conn, cursor
 
 # ==========================================
-# MÓDULOS
+# IMPORTAR BANCO
+# ==========================================
+
+import database
+
+
+
+# ==========================================
+# IMPORTAR MÓDULOS
 # ==========================================
 
 from usuario import registrar_usuario
-from admin import registrar_admin
-from saques import registrar_saques
+
 from indicacoes import registrar_indicacoes
+
+from saques import registrar_saques
+
+from admin import registrar_admin
+
 from antifraude import registrar_antifraude
 
+
+
 # ==========================================
-# BOT
+# CRIAR BOT
 # ==========================================
 
 bot = telebot.TeleBot(
@@ -31,174 +42,102 @@ bot = telebot.TeleBot(
 
 )
 
+
+
 # ==========================================
-# REGISTRAR MÓDULOS
+# REGISTRAR SISTEMAS
 # ==========================================
 
 registrar_usuario(bot)
 
-registrar_admin(bot)
+registrar_indicacoes(bot)
 
 registrar_saques(bot)
 
-registrar_indicacoes(bot)
+registrar_admin(bot)
 
 registrar_antifraude(bot)
 
+
+
 # ==========================================
-# COMANDOS GERAIS
+# COMANDO PING
 # ==========================================
 
-@bot.message_handler(commands=["ping"])
+@bot.message_handler(
+    commands=["ping"]
+)
 def ping(message):
 
     bot.reply_to(
 
         message,
 
-        "🏓 Bot Online!"
+        "🏓 Bot online!"
 
     )
 
-
-@bot.message_handler(commands=["id"])
-def meu_id(message):
-
-    bot.reply_to(
-
-        message,
-
-        f"""
-🆔 Seu ID
-
-<code>{message.from_user.id}</code>
-""",
-
-        parse_mode="HTML"
-
-    )
-
-
-@bot.message_handler(commands=["versao"])
-def versao(message):
-
-    from config import VERSAO
-
-    bot.reply_to(
-
-        message,
-
-        f"""
-🤖 Pitbull Referral Bot
-
-Versão:
-
-<b>{VERSAO}</b>
-""",
-
-        parse_mode="HTML"
-
-    )
-
-
-@bot.message_handler(commands=["ajuda"])
-def ajuda(message):
-
-    texto = """
-🤖 <b>AJUDA</b>
-
-Comandos disponíveis:
-
-/start
-
-/ping
-
-/id
-
-/versao
-
-/admin (Administrador)
-
-Utilize os botões para navegar.
-"""
-
-    bot.send_message(
-
-        message.chat.id,
-
-        texto,
-
-        parse_mode="HTML"
-
-    )
 
 
 # ==========================================
-# MENSAGEM DESCONHECIDA
+# ERRO GERAL
 # ==========================================
 
-@bot.message_handler(func=lambda m: True)
-def desconhecido(message):
+@bot.message_handler(
+    func=lambda m: True
+)
+def mensagens_nao_reconhecidas(message):
 
-    bot.reply_to(
-
-        message,
-
-        """
-❌ Opção inválida.
-
-Utilize os botões do menu.
-"""
-
-    )
-
-
-# ==========================================
+    pass# ==========================================
 # INICIAR BOT
 # ==========================================
 
-print("=" * 50)
+if __name__ == "__main__":
 
-print("🚀 PITBULL REFERRAL BOT")
 
-print("=" * 50)
+    print(
+        """
+================================
 
-print("Banco de dados conectado.")
+🤖 BOT INICIADO COM SUCESSO
 
-print("Módulos carregados.")
+✅ Usuários carregado
+✅ Indicações carregado
+✅ Saques carregado
+✅ Admin carregado
+✅ Antifraude carregado
 
-print("Bot iniciado com sucesso.")
+================================
+"""
+    )
 
-print("=" * 50)
 
-# ==========================================
-# LOOP PRINCIPAL
-# ==========================================
+    while True:
 
-while True:
+        try:
 
-    try:
 
-        bot.infinity_polling(
+            bot.infinity_polling(
 
-            timeout=30,
+                timeout=60,
 
-            long_polling_timeout=30,
+                long_polling_timeout=60
 
-            skip_pending=True
+            )
 
-        )
 
-    except Exception as erro:
+        except Exception as erro:
 
-        print("=" * 50)
 
-        print("ERRO ENCONTRADO")
+            print(
 
-        print(erro)
+                f"Erro no bot: {erro}"
 
-        print("Reiniciando em 10 segundos...")
+            )
 
-        print("=" * 50)
 
-        time.sleep(10)
+            print(
+
+                "Tentando reconectar..."
+
+            )
