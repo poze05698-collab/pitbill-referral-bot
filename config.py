@@ -2,85 +2,73 @@
 # CONFIGURAÇÕES DO BOT
 # ==========================================
 
-# Token do BotFather
+
+# TOKEN DO BOT TELEGRAM
+
 TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg"
 
+
+
 # ==========================================
-# ADMINISTRADOR
+# ADMIN
 # ==========================================
 
 ADMIN_ID = 6172813641
 
-# ==========================================
-# BOT
-# ==========================================
 
-NOME_BOT = "Pitbull Referral Bot"
-
-VERSAO = "3.0"
-
-SUPORTE = "@PitbullSlots011"
 
 # ==========================================
-# GRUPO
+# GRUPO OBRIGATÓRIO
 # ==========================================
 
 GRUPO_ID = -1003355182545
 
+
 GRUPO_LINK = "https://t.me/pitbullslotsofc"
 
-GRUPO_OBRIGATORIO = True
+
 
 # ==========================================
-# INDICAÇÕES
+# VALORES DO SISTEMA
 # ==========================================
 
 VALOR_INDICACAO = 1.00
 
-# ==========================================
-# SAQUES
-# ==========================================
 
 VALOR_MINIMO_SAQUE = 15.00
 
-PIX_OBRIGATORIO = True
+
 
 # ==========================================
-# SISTEMA
+# SISTEMAS DE SEGURANÇA
 # ==========================================
 
 ANTI_FRAUDE = True
 
-LOGS = True
+
+GRUPO_OBRIGATORIO = True
+
+
+PIX_OBRIGATORIO = True
+
+
 
 # ==========================================
 # MANUTENÇÃO
 # ==========================================
 
-MODO_MANUTENCAO = False
+MANUTENCAO = False
 
-MENSAGEM_MANUTENCAO = """
-🔧 BOT EM MANUTENÇÃO
 
-Estamos realizando melhorias.
-
-Tente novamente em alguns minutos.
-
-Agradecemos pela compreensão.
-"""
 
 # ==========================================
-# BANIMENTO
+# INFORMAÇÕES
 # ==========================================
 
-MENSAGEM_BANIMENTO = """
-🚫 SUA CONTA FOI BLOQUEADA
+NOME_BOT = "Bot Indicações"
 
-Entre em contato com o suporte.
-"""
 
-# ==========================================
-# DATA
-# ==========================================
+VERSAO = "2.0"
 
-FORMATO_DATA = "%d/%m/%Y %H:%M"
+
+SUPORTE = "@PitbullSlots011"
