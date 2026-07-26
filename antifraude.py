@@ -1,28 +1,91 @@
-from datetime import datetime, timedelta
+import time
 
-from database import conn, cursor
+from database import cursor
+
+from utils import (
+    adicionar_log,
+    usuario_bloqueado
+)
+
+# ==========================================
+# CONTROLE DE TEMPO
+# ==========================================
+
+ultimo_comando = {}
+
+# ==========================================
+# REGISTRAR MÓDULO
+# ==========================================
+
+def registrar_antifraude(bot):
+
+    pass
+
+# ==========================================
+# ANTI FLOOD
+# ==========================================
+
+def anti_flood(user_id):
+
+    agora = time.time()
+
+    if user_id not in ultimo_comando:
+
+        ultimo_comando[user_id] = agora
+
+        return True
+
+    diferenca = agora - ultimo_comando[user_id]
+
+    ultimo_comando[user_id] = agora
+
+    if diferenca < 2:
+
+        adicionar_log(
+
+            user_id,
+
+            "ANTI FLOOD",
+
+            "Comandos enviados muito rápido."
+
+        )
+
+        return False
+
+    return True
 
 # ==========================================
 # AUTO INDICAÇÃO
 # ==========================================
 
-def verificar_auto_indicacao(user_id, indicador):
+def auto_indicacao(indicador, indicado):
 
-    if indicador is None:
-        return True
+    if indicador == indicado:
 
-    return user_id != indicador
+        adicionar_log(
 
+            indicador,
+
+            "AUTO INDICAÇÃO",
+
+            "Tentativa bloqueada."
+
+        )
+
+        return False
+
+    return True
 
 # ==========================================
-# USUÁRIO BLOQUEADO
+# CADASTRO DUPLICADO
 # ==========================================
 
-def usuario_bloqueado(user_id):
+def cadastro_existente(user_id):
 
     cursor.execute(
         """
-        SELECT bloqueado
+        SELECT id
 
         FROM usuarios
 
@@ -31,27 +94,29 @@ def usuario_bloqueado(user_id):
         (user_id,)
     )
 
-    resultado = cursor.fetchone()
-
-    if not resultado:
-        return False
-
-    return resultado[0] == 1
-
+    return cursor.fetchone() is not None
 
 # ==========================================
-# POSSUI INDICAÇÃO
+# USUÁRIO BLOQUEADO
 # ==========================================
 
-def possui_indicacao(user_id):
+def acesso_permitido(user_id):
+
+    return not usuario_bloqueado(user_id)# ==========================================
+# SAQUE DUPLICADO
+# ==========================================
+
+def saque_pendente(user_id):
 
     cursor.execute(
         """
         SELECT id
 
-        FROM indicacoes
+        FROM saques
 
-        WHERE indicado=?
+        WHERE usuario=?
+
+        AND status='PENDENTE'
         """,
         (user_id,)
     )
@@ -60,153 +125,31 @@ def possui_indicacao(user_id):
 
 
 # ==========================================
-# REGISTRAR FRAUDE
+# LIMITE DE TENTATIVAS
 # ==========================================
 
-def registrar_fraude(user_id, motivo):
+tentativas = {}
 
-    cursor.execute(
-        """
-        INSERT INTO historico(
+def verificar_tentativas(user_id):
 
-            usuario,
-            tipo,
-            descricao,
-            valor,
-            data
+    if user_id not in tentativas:
 
-        )
+        tentativas[user_id] = 1
 
-        VALUES(
+        return True
 
-            ?,?,?,?,?
+    tentativas[user_id] += 1
 
-        )
-        """,
-        (
+    if tentativas[user_id] >= 10:
+
+        adicionar_log(
+
             user_id,
-            "FRAUDE",
-            motivo,
-            0,
-            datetime.now().strftime(
-                "%d/%m/%Y %H:%M"
-            )
-        )
-    )
 
-    conn.commit()
+            "MUITAS TENTATIVAS",
 
+            "Usuário excedeu o limite de tentativas."
 
-# ==========================================
-# BLOQUEAR USUÁRIO
-# ==========================================
-
-def bloquear_usuario(user_id, motivo):
-
-    cursor.execute(
-        """
-        UPDATE usuarios
-
-        SET bloqueado=1
-
-        WHERE id=?
-        """,
-        (user_id,)
-    )
-
-    cursor.execute(
-        """
-        INSERT OR IGNORE INTO usuarios_bloqueados(
-
-            usuario,
-            motivo,
-            data
-
-        )
-
-        VALUES(
-
-            ?,?,?
-
-        )
-        """,
-        (
-            user_id,
-            motivo,
-            datetime.now().strftime(
-                "%d/%m/%Y %H:%M"
-            )
-        )
-    )
-
-    conn.commit()
-
-
-# ==========================================
-# LIMITE DE INDICAÇÕES
-# ==========================================
-
-def verificar_limite(indicador):
-
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-
-        FROM indicacoes
-
-        WHERE indicador=?
-
-        AND data LIKE ?
-        """,
-        (
-            indicador,
-            datetime.now().strftime("%d/%m/%Y") + "%"
-        )
-    )
-
-    quantidade = cursor.fetchone()[0]
-
-    # Máximo de 20 indicações por dia
-    return quantidade < 20# ==========================================
-# DETECTAR PADRÃO SUSPEITO
-# ==========================================
-
-def detectar_fraude(user_id, indicador):
-
-    # Auto indicação
-    if not verificar_auto_indicacao(
-        user_id,
-        indicador
-    ):
-
-        registrar_fraude(
-            user_id,
-            "Auto indicação"
-        )
-
-        bloquear_usuario(
-            user_id,
-            "Auto indicação"
-        )
-
-        return False
-
-    # Já foi indicado
-    if possui_indicacao(user_id):
-
-        registrar_fraude(
-            user_id,
-            "Tentativa de dupla indicação"
-        )
-
-        return False
-
-    # Limite diário
-    if not verificar_limite(indicador):
-
-        registrar_fraude(
-            indicador,
-            "Excesso de indicações"
         )
 
         return False
@@ -215,67 +158,47 @@ def detectar_fraude(user_id, indicador):
 
 
 # ==========================================
-# RELATÓRIO
+# RESETAR TENTATIVAS
 # ==========================================
 
-def relatorio_fraudes():
+def resetar_tentativas(user_id):
+
+    tentativas[user_id] = 0
+
+
+# ==========================================
+# VERIFICAR PIX DUPLICADO
+# ==========================================
+
+def pix_duplicado(chave_pix, user_id):
 
     cursor.execute(
         """
-        SELECT
+        SELECT id
 
-        usuario,
-        descricao,
-        data
+        FROM usuarios
 
-        FROM historico
+        WHERE pix=?
 
-        WHERE tipo='FRAUDE'
-
-        ORDER BY id DESC
-
-        LIMIT 50
-        """
-    )
-
-    return cursor.fetchall()
-
-
-# ==========================================
-# CONTAR FRAUDES
-# ==========================================
-
-def total_fraudes(user_id):
-
-    cursor.execute(
-        """
-        SELECT COUNT(*)
-
-        FROM historico
-
-        WHERE usuario=?
-
-        AND tipo='FRAUDE'
+        AND id<>?
         """,
-        (user_id,)
+        (
+            chave_pix,
+            user_id
+        )
     )
 
-    return cursor.fetchone()[0]
+    usuario = cursor.fetchone()
 
+    if usuario:
 
-# ==========================================
-# BLOQUEIO AUTOMÁTICO
-# ==========================================
-
-def verificar_bloqueio_automatico(user_id):
-
-    if total_fraudes(user_id) >= 3:
-
-        bloquear_usuario(
+        adicionar_log(
 
             user_id,
 
-            "Fraudes repetidas"
+            "PIX DUPLICADO",
+
+            f"Tentou cadastrar um Pix já utilizado."
 
         )
 
@@ -285,31 +208,93 @@ def verificar_bloqueio_automatico(user_id):
 
 
 # ==========================================
-# VALIDAÇÃO GERAL
+# VERIFICAR INDICAÇÃO DUPLICADA
 # ==========================================
 
-def validar_usuario(user_id, indicador):
+def indicacao_duplicada(indicador, indicado):
 
-    if usuario_bloqueado(user_id):
+    cursor.execute(
+        """
+        SELECT id
 
-        return False
+        FROM indicacoes
 
-    if not detectar_fraude(
+        WHERE indicador=?
+
+        AND indicado=?
+        """,
+        (
+            indicador,
+            indicado
+        )
+    )
+
+    if cursor.fetchone():
+
+        adicionar_log(
+
+            indicador,
+
+            "INDICAÇÃO DUPLICADA",
+
+            f"Usuário {indicado}"
+
+        )
+
+        return True
+
+    return False
+
+
+# ==========================================
+# REGISTRAR SUSPEITA
+# ==========================================
+
+def registrar_suspeita(user_id, motivo):
+
+    adicionar_log(
 
         user_id,
 
-        indicador
+        "ATIVIDADE SUSPEITA",
 
-    ):
+        motivo
+
+    )
+
+
+# ==========================================
+# VERIFICAR ACESSO COMPLETO
+# ==========================================
+
+def verificar_antifraude(user_id):
+
+    if not acesso_permitido(user_id):
 
         return False
 
-    if verificar_bloqueio_automatico(
+    if not verificar_tentativas(user_id):
 
-        user_id
+        return False
 
-    ):
+    if not anti_flood(user_id):
 
         return False
 
     return True
+
+
+# ==========================================
+# LIMPAR DADOS TEMPORÁRIOS
+# ==========================================
+
+def limpar_cache():
+
+    ultimo_comando.clear()
+
+    tentativas.clear()
+
+
+# ==========================================
+# FIM DO MÓDULO
+# ==========================================
