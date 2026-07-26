@@ -5,37 +5,20 @@ from config import TOKEN
 from database import *
 
 from usuario import registrar_usuario
-
+from saques import registrar_saques
 from admin import registrar_admin
-
-# ==========================================
-# BOT
-# ==========================================
 
 bot = telebot.TeleBot(
     TOKEN,
     parse_mode="HTML"
 )
 
-# ==========================================
-# REGISTRAR MÓDULOS
-# ==========================================
-
+# Registrar módulos
 registrar_usuario(bot)
-
+registrar_saques(bot)
 registrar_admin(bot)
 
-# ==========================================
-# COMANDO STARTUP
-# ==========================================
-
-print("=" * 40)
-print("Bot iniciado com sucesso!")
-print("=" * 40)
-
-# ==========================================
-# POLLING
-# ==========================================
+print("✅ Bot iniciado!")
 
 bot.infinity_polling(
     timeout=30,
