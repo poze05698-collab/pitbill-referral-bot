@@ -1,37 +1,59 @@
-import telebot
-
 from datetime import datetime
 
 from config import *
+
 from database import conn, cursor
-from teclado import menu_principal, menu_pix
-from indicacoes import validar_indicacao
+
+from teclado import (
+    menu_principal,
+    menu_pix
+)
+
+from utils import (
+    verificar_acesso,
+    adicionar_log,
+    adicionar_historico,
+    agora
+)
 
 # ==========================================
-# REGISTRAR MÓDULO USUÁRIO
+# REGISTRAR MÓDULO
 # ==========================================
 
 def registrar_usuario(bot):
 
     # ======================================
-    # START
+    # /START
     # ======================================
 
     @bot.message_handler(commands=["start"])
     def start(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
+
         nome = message.from_user.first_name
 
         username = (
             "@" + message.from_user.username
             if message.from_user.username
-            else "Não possui"
+            else ""
         )
 
         cursor.execute(
-            "SELECT id FROM usuarios WHERE id=?",
+
+            """
+            SELECT id
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
+
             (user_id,)
+
         )
 
         usuario = cursor.fetchone()
@@ -55,10 +77,15 @@ def registrar_usuario(bot):
                     try:
 
                         convidado_por = int(
+
                             codigo.replace(
+
                                 "convite_",
+
                                 ""
+
                             )
+
                         )
 
                     except:
@@ -72,81 +99,97 @@ def registrar_usuario(bot):
                 convidado_por = None
 
             cursor.execute(
+
                 """
                 INSERT INTO usuarios(
 
                     id,
+
                     nome,
+
                     username,
+
                     saldo,
+
                     pix,
+
                     convidados,
+
                     convidado_por,
+
                     bloqueado,
+
+                    admin,
+
                     data_cadastro,
+
                     ultimo_acesso
 
                 )
 
                 VALUES(
 
-                    ?,?,?,?,?,?,?,?,?,?
+                    ?,?,?,?,?,?,?,?,?,?,?
 
                 )
                 """,
+
                 (
 
                     user_id,
+
                     nome,
+
                     username,
+
                     0,
+
                     "",
+
                     0,
+
                     convidado_por,
+
                     0,
-                    datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    datetime.now().strftime("%d/%m/%Y %H:%M")
+
+                    0,
+
+                    agora(),
+
+                    agora()
 
                 )
 
             )
 
-            # Registrar indicação
-
-            if convidado_por:
-
-                cursor.execute(
-                    """
-                    INSERT INTO indicacoes(
-
-                        indicador,
-                        indicado,
-                        recompensa,
-                        status,
-                        data
-
-                    )
-
-                    VALUES(
-
-                        ?,?,?,?,?
-
-                    )
-                    """,
-                    (
-                        convidado_por,
-                        user_id,
-                        0,
-                        "PENDENTE",
-                        datetime.now().strftime("%d/%m/%Y %H:%M")
-                    )
-                )
-
             conn.commit()
+
+            adicionar_log(
+
+                user_id,
+
+                "CADASTRO",
+
+                "Novo usuário"
+
+            )
+
+            adicionar_historico(
+
+                user_id,
+
+                "CADASTRO",
+
+                "Cadastro realizado",
+
+                0
+
+            )
 
         else:
 
             cursor.execute(
+
                 """
                 UPDATE usuarios
 
@@ -154,20 +197,27 @@ def registrar_usuario(bot):
 
                 WHERE id=?
                 """,
+
                 (
-                    datetime.now().strftime("%d/%m/%Y %H:%M"),
+
+                    agora(),
+
                     user_id
+
                 )
+
             )
 
             conn.commit()
 
         texto = f"""
-🎉 <b>Bem-vindo, {nome}!</b>
+🎉 <b>Bem-vindo(a), {nome}!</b>
 
-💰 Convide seus amigos e ganhe dinheiro.
+💰 Convide amigos.
 
-Escolha uma opção no menu abaixo.
+🎁 Ganhe recompensas.
+
+Escolha uma opção abaixo.
 """
 
         bot.send_message(
@@ -186,6 +236,9 @@ Escolha uma opção no menu abaixo.
 
     @bot.message_handler(func=lambda m: m.text == "👤 Perfil")
     def perfil(message):
+
+        if not verificar_acesso(bot, message):
+            return
 
         user_id = message.from_user.id
 
@@ -218,7 +271,7 @@ Escolha uma opção no menu abaixo.
 
         saldo, convidados, pix, cadastro = usuario
 
-        if not pix:
+        if pix == "":
             pix = "Não cadastrada"
 
         texto = f"""
@@ -237,6 +290,7 @@ Escolha uma opção no menu abaixo.
 <code>{pix}</code>
 
 📅 Cadastro:
+
 {cadastro}
 """
 
@@ -259,19 +313,28 @@ Escolha uma opção no menu abaixo.
     @bot.message_handler(func=lambda m: m.text == "💰 Saldo")
     def saldo(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         cursor.execute(
 
-            "SELECT saldo FROM usuarios WHERE id=?",
+            """
+            SELECT saldo
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
 
             (user_id,)
 
         )
 
-        usuario = cursor.fetchone()
+        saldo = cursor.fetchone()
 
-        if usuario is None:
+        if saldo is None:
 
             bot.reply_to(
                 message,
@@ -285,9 +348,11 @@ Escolha uma opção no menu abaixo.
             message.chat.id,
 
             f"""
-💰 <b>Seu saldo atual</b>
+💰 <b>SEU SALDO</b>
 
-R$ {usuario[0]:.2f}
+Saldo disponível:
+
+<b>R$ {saldo[0]:.2f}</b>
 """,
 
             parse_mode="HTML",
@@ -297,30 +362,29 @@ R$ {usuario[0]:.2f}
         )
 
     # ======================================
-    # LINK DE INDICAÇÃO
+    # MEU LINK
     # ======================================
 
     @bot.message_handler(func=lambda m: m.text == "🔗 Meu Link")
     def meu_link(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         username_bot = bot.get_me().username
 
-        link = (
-            f"https://t.me/"
-            f"{username_bot}"
-            f"?start=convite_{user_id}"
-        )
+        link = f"https://t.me/{username_bot}?start=convite_{user_id}"
 
         texto = f"""
-🔗 <b>Seu link de indicação</b>
+🔗 <b>SEU LINK DE INDICAÇÃO</b>
 
-Compartilhe este link:
+Compartilhe o link abaixo:
 
 <code>{link}</code>
 
-Cada indicação válida poderá gerar recompensa.
+Cada usuário válido poderá gerar uma recompensa.
 """
 
         bot.send_message(
@@ -344,28 +408,31 @@ Cada indicação válida poderá gerar recompensa.
     @bot.message_handler(func=lambda m: m.text == "👥 Indicados")
     def indicados(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         cursor.execute(
-            """
-            SELECT
 
-            COUNT(*)
+            """
+            SELECT COUNT(*)
 
             FROM indicacoes
 
             WHERE indicador=?
             """,
+
             (user_id,)
+
         )
 
         total = cursor.fetchone()[0]
 
         cursor.execute(
-            """
-            SELECT
 
-            COUNT(*)
+            """
+            SELECT COUNT(*)
 
             FROM indicacoes
 
@@ -373,16 +440,17 @@ Cada indicação válida poderá gerar recompensa.
 
             AND status='APROVADA'
             """,
+
             (user_id,)
+
         )
 
         aprovadas = cursor.fetchone()[0]
 
         cursor.execute(
-            """
-            SELECT
 
-            COUNT(*)
+            """
+            SELECT COUNT(*)
 
             FROM indicacoes
 
@@ -390,7 +458,9 @@ Cada indicação válida poderá gerar recompensa.
 
             AND status='PENDENTE'
             """,
+
             (user_id,)
+
         )
 
         pendentes = cursor.fetchone()[0]
@@ -399,12 +469,15 @@ Cada indicação válida poderá gerar recompensa.
 👥 <b>SUAS INDICAÇÕES</b>
 
 👤 Total:
+
 <b>{total}</b>
 
 ✅ Aprovadas:
+
 <b>{aprovadas}</b>
 
 ⏳ Pendentes:
+
 <b>{pendentes}</b>
 """
 
@@ -425,10 +498,17 @@ Cada indicação válida poderá gerar recompensa.
     @bot.message_handler(func=lambda m: m.text == "💳 Pix")
     def menu_pix_usuario(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         cursor.execute(
-            "SELECT pix FROM usuarios WHERE id=?",
+            """
+            SELECT pix
+            FROM usuarios
+            WHERE id=?
+            """,
             (user_id,)
         )
 
@@ -449,7 +529,7 @@ Cada indicação válida poderá gerar recompensa.
             chave = "Nenhuma chave cadastrada."
 
         texto = f"""
-💳 <b>PIX</b>
+💳 <b>ÁREA PIX</b>
 
 Sua chave atual:
 
@@ -459,10 +539,15 @@ Escolha uma opção abaixo.
 """
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML",
+
             reply_markup=menu_pix()
+
         )
 
     # ======================================
@@ -472,14 +557,32 @@ Escolha uma opção abaixo.
     @bot.message_handler(func=lambda m: m.text == "➕ Cadastrar Pix")
     def cadastrar_pix(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         bot.send_message(
+
             message.chat.id,
-            "✍️ Envie sua chave Pix:"
+
+            """
+✍️ Envie sua chave Pix.
+
+Exemplo:
+
+CPF
+E-mail
+Telefone
+Chave Aleatória
+"""
+
         )
 
         bot.register_next_step_handler(
+
             message,
+
             salvar_pix
+
         )
 
     # ======================================
@@ -489,14 +592,23 @@ Escolha uma opção abaixo.
     @bot.message_handler(func=lambda m: m.text == "✏️ Alterar Pix")
     def alterar_pix(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         bot.send_message(
+
             message.chat.id,
-            "✍️ Envie a nova chave Pix:"
+
+            "✍️ Envie sua nova chave Pix."
+
         )
 
         bot.register_next_step_handler(
+
             message,
+
             salvar_pix
+
         )
 
     # ======================================
@@ -506,11 +618,23 @@ Escolha uma opção abaixo.
     @bot.message_handler(func=lambda m: m.text == "👁 Ver Pix")
     def ver_pix(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         cursor.execute(
-            "SELECT pix FROM usuarios WHERE id=?",
+
+            """
+            SELECT pix
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
+
             (user_id,)
+
         )
 
         usuario = cursor.fetchone()
@@ -518,8 +642,11 @@ Escolha uma opção abaixo.
         if usuario is None:
 
             bot.reply_to(
+
                 message,
+
                 "Use /start primeiro."
+
             )
 
             return
@@ -527,13 +654,23 @@ Escolha uma opção abaixo.
         chave = usuario[0]
 
         if chave == "":
+
             chave = "Nenhuma chave cadastrada."
 
         bot.send_message(
+
             message.chat.id,
-            f"💳 Sua chave Pix:\n\n<code>{chave}</code>",
+
+            f"""
+💳 <b>SUA CHAVE PIX</b>
+
+<code>{chave}</code>
+""",
+
             parse_mode="HTML",
+
             reply_markup=menu_pix()
+
         )
 
     # ======================================
@@ -542,6 +679,9 @@ Escolha uma opção abaixo.
 
     def salvar_pix(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         user_id = message.from_user.id
 
         chave = message.text.strip()
@@ -549,33 +689,155 @@ Escolha uma opção abaixo.
         if len(chave) < 5:
 
             bot.reply_to(
+
                 message,
-                "❌ Chave Pix inválida."
+
+                """
+❌ Chave Pix inválida.
+
+Tente novamente.
+"""
+
             )
 
             return
 
         cursor.execute(
+
             """
             UPDATE usuarios
+
             SET pix=?
+
             WHERE id=?
             """,
+
             (
+
                 chave,
+
                 user_id
+
             )
+
         )
 
         conn.commit()
 
-        # Valida indicação automaticamente
-        validar_indicacao(bot, user_id)
+        adicionar_log(
+
+            user_id,
+
+            "PIX",
+
+            "Pix atualizado"
+
+        )
+
+        adicionar_historico(
+
+            user_id,
+
+            "PIX",
+
+            "Cadastro/Alteração da chave Pix",
+
+            0
+
+        )
 
         bot.send_message(
+
             message.chat.id,
-            "✅ Chave Pix salva com sucesso!",
+
+            """
+✅ Chave Pix salva com sucesso.
+""",
+
             reply_markup=menu_principal()
+
+        )
+
+        # A Parte 4 implementará a validação automática
+        # da indicação após o cadastro do Pix.    # ======================================
+    # HISTÓRICO
+    # ======================================
+
+    @bot.message_handler(func=lambda m: m.text == "📜 Histórico")
+    def historico(message):
+
+        if not verificar_acesso(bot, message):
+            return
+
+        user_id = message.from_user.id
+
+        cursor.execute(
+            """
+            SELECT
+
+                tipo,
+                descricao,
+                valor,
+                data
+
+            FROM historico
+
+            WHERE usuario=?
+
+            ORDER BY id DESC
+
+            LIMIT 20
+            """,
+            (user_id,)
+        )
+
+        registros = cursor.fetchall()
+
+        if len(registros) == 0:
+
+            bot.send_message(
+
+                message.chat.id,
+
+                """
+📜 Você ainda não possui histórico.
+""",
+
+                reply_markup=menu_principal()
+
+            )
+
+            return
+
+        texto = "📜 <b>SEU HISTÓRICO</b>\n\n"
+
+        for registro in registros:
+
+            tipo, descricao, valor, data = registro
+
+            texto += f"""
+📌 <b>{tipo}</b>
+
+{descricao}
+
+💰 R$ {valor:.2f}
+
+📅 {data}
+
+──────────────────
+
+"""
+
+        bot.send_message(
+
+            message.chat.id,
+
+            texto,
+
+            parse_mode="HTML",
+
+            reply_markup=menu_principal()
+
         )
 
     # ======================================
@@ -585,25 +847,41 @@ Escolha uma opção abaixo.
     @bot.message_handler(func=lambda m: m.text == "📜 Regras")
     def regras(message):
 
-        texto = """
-📜 <b>REGRAS</b>
+        if not verificar_acesso(bot, message):
+            return
+
+        texto = f"""
+📜 <b>REGRAS DO {NOME_BOT}</b>
 
 ✅ Apenas uma conta por pessoa.
 
-✅ Autoindicação é proibida.
+✅ Auto indicação é proibida.
+
+✅ Fraudes geram banimento.
 
 ✅ É obrigatório cadastrar uma chave Pix.
 
 ✅ O administrador analisa todos os saques.
 
-✅ Tentativas de fraude resultam em bloqueio.
+💰 Valor por indicação:
+
+<b>R$ {VALOR_INDICACAO:.2f}</b>
+
+💸 Valor mínimo para saque:
+
+<b>R$ {VALOR_MINIMO_SAQUE:.2f}</b>
 """
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML",
+
             reply_markup=menu_principal()
+
         )
 
     # ======================================
@@ -613,27 +891,35 @@ Escolha uma opção abaixo.
     @bot.message_handler(func=lambda m: m.text == "ℹ️ Informações")
     def informacoes(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         texto = f"""
 ℹ️ <b>{NOME_BOT}</b>
 
-💰 Valor por indicação:
-R$ {VALOR_INDICACAO:.2f}
+🤖 Sistema de indicações.
 
-💸 Saque mínimo:
-R$ {VALOR_MINIMO_SAQUE:.2f}
+💰 Ganhe convidando amigos.
 
 📞 Suporte:
+
 {SUPORTE}
 
-Versão:
+📦 Versão:
+
 {VERSAO}
 """
 
         bot.send_message(
+
             message.chat.id,
+
             texto,
+
             parse_mode="HTML",
+
             reply_markup=menu_principal()
+
         )
 
     # ======================================
@@ -643,8 +929,167 @@ Versão:
     @bot.message_handler(func=lambda m: m.text == "🏠 Menu")
     def menu(message):
 
+        if not verificar_acesso(bot, message):
+            return
+
         bot.send_message(
+
             message.chat.id,
-            "🏠 Menu Principal",
+
+            """
+🏠 <b>MENU PRINCIPAL</b>
+
+Escolha uma opção abaixo.
+""",
+
+            parse_mode="HTML",
+
             reply_markup=menu_principal()
+
+        )    # ======================================
+    # ATUALIZAR ÚLTIMO ACESSO
+    # ======================================
+
+    def atualizar_ultimo_acesso(user_id):
+
+        cursor.execute(
+            """
+            UPDATE usuarios
+
+            SET ultimo_acesso=?
+
+            WHERE id=?
+            """,
+            (
+                agora(),
+                user_id
+            )
         )
+
+        conn.commit()
+
+    # ======================================
+    # VERIFICAR PIX
+    # ======================================
+
+    def possui_pix(user_id):
+
+        cursor.execute(
+            """
+            SELECT pix
+
+            FROM usuarios
+
+            WHERE id=?
+            """,
+            (user_id,)
+        )
+
+        usuario = cursor.fetchone()
+
+        if usuario is None:
+            return False
+
+        return usuario[0] != ""
+
+    # ======================================
+    # TOTAL DE INDICADOS
+    # ======================================
+
+    def total_indicados(user_id):
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+
+            FROM indicacoes
+
+            WHERE indicador=?
+            """,
+            (user_id,)
+        )
+
+        return cursor.fetchone()[0]
+
+    # ======================================
+    # TOTAL DE INDICAÇÕES APROVADAS
+    # ======================================
+
+    def total_aprovadas(user_id):
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+
+            FROM indicacoes
+
+            WHERE indicador=?
+
+            AND status='APROVADA'
+            """,
+            (user_id,)
+        )
+
+        return cursor.fetchone()[0]
+
+    # ======================================
+    # ATUALIZAR CONTADOR
+    # ======================================
+
+    def atualizar_contador(user_id):
+
+        cursor.execute(
+            """
+            UPDATE usuarios
+
+            SET convidados=?
+
+            WHERE id=?
+            """,
+            (
+                total_aprovadas(user_id),
+                user_id
+            )
+        )
+
+        conn.commit()
+
+    # ======================================
+    # ENVIAR MENU PRINCIPAL
+    # ======================================
+
+    def enviar_menu(chat_id):
+
+        bot.send_message(
+
+            chat_id,
+
+            """
+🏠 Menu Principal
+
+Escolha uma das opções abaixo.
+""",
+
+            reply_markup=menu_principal()
+
+        )
+
+    # ======================================
+    # VALIDAÇÃO DE INDICAÇÃO
+    # ======================================
+
+    def validar_indicacao_usuario(user_id):
+
+        """
+        Esta função será utilizada
+        pelo arquivo indicacoes.py.
+
+        Aqui apenas deixamos
+        preparada para integração.
+        """
+
+        pass
+
+    # ======================================
+    # FIM DO MÓDULO
+    # ======================================
