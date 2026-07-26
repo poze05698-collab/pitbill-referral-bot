@@ -1,119 +1,152 @@
 from datetime import datetime
 
-from database import conn, cursor
-
-from config import (
-    ADMIN_ID,
-    FORMATO_DATA,
-    MODO_MANUTENCAO,
-    MENSAGEM_MANUTENCAO,
-    MENSAGEM_BANIMENTO
+from database import (
+    conn,
+    cursor
 )
 
+from config import (
+    ADMIN_ID
+)
+
+
+
 # ==========================================
-# DATA E HORA
+# DATA ATUAL
 # ==========================================
 
 def agora():
 
     return datetime.now().strftime(
-        FORMATO_DATA
+
+        "%d/%m/%Y %H:%M:%S"
+
     )
 
 
-# ==========================================
-# ADMIN
-# ==========================================
-
-def eh_admin(user_id):
-
-    return user_id == ADMIN_ID
-
 
 # ==========================================
-# MANUTENÇÃO
-# ==========================================
-
-def em_manutencao():
-
-    if MODO_MANUTENCAO:
-
-        return True
-
-    cursor.execute(
-        """
-        SELECT valor
-
-        FROM configuracoes
-
-        WHERE chave='modo_manutencao'
-        """
-    )
-
-    resultado = cursor.fetchone()
-
-    if resultado is None:
-
-        return False
-
-    return resultado[0] == "SIM"
-
-
-# ==========================================
-# USUÁRIO BLOQUEADO
+# VERIFICAR USUÁRIO BLOQUEADO
 # ==========================================
 
 def usuario_bloqueado(user_id):
 
     cursor.execute(
+
         """
         SELECT bloqueado
 
         FROM usuarios
 
         WHERE id=?
+
         """,
+
         (user_id,)
+
     )
 
-    usuario = cursor.fetchone()
 
-    if usuario is None:
+    resultado = cursor.fetchone()
+
+
+    if resultado is None:
 
         return False
 
-    return usuario[0] == 1
+
+    return resultado[0] == 1
+
 
 
 # ==========================================
-# VERIFICAR ACESSO
+# VERIFICAR MANUTENÇÃO
+# ==========================================
+
+def em_manutencao():
+
+
+    cursor.execute(
+
+        """
+        SELECT valor
+
+        FROM configuracoes
+
+        WHERE chave='modo_manutencao'
+
+        """
+
+    )
+
+
+    resultado = cursor.fetchone()
+
+
+    if resultado is None:
+
+        return False
+
+
+    return resultado[0] == "SIM"
+
+
+
+# ==========================================
+# ALTERAR CONFIGURAÇÃO
+# ==========================================
+
+def alterar_config(chave, valor):
+
+
+    cursor.execute(
+
+        """
+        INSERT OR REPLACE INTO configuracoes(
+
+            chave,
+
+            valor
+
+        )
+
+        VALUES(
+
+            ?,?
+
+        )
+
+        """,
+
+        (
+
+            chave,
+
+            valor
+
+        )
+
+    )
+
+
+    conn.commit()# ==========================================
+# VERIFICAR ACESSO COMPLETO
 # ==========================================
 
 def verificar_acesso(bot, message):
 
     user_id = message.from_user.id
 
-    # Admin nunca é bloqueado
 
-    if eh_admin(user_id):
+    # ADMIN SEMPRE ENTRA
+
+    if user_id == ADMIN_ID:
 
         return True
 
-    # Manutenção
 
-    if em_manutencao():
 
-        bot.send_message(
-
-            message.chat.id,
-
-            MENSAGEM_MANUTENCAO
-
-        )
-
-        return False
-
-    # Banimento
+    # VERIFICAR BANIMENTO
 
     if usuario_bloqueado(user_id):
 
@@ -121,61 +154,102 @@ def verificar_acesso(bot, message):
 
             message.chat.id,
 
-            MENSAGEM_BANIMENTO,
+            """
+🚫 Sua conta está bloqueada.
 
-            parse_mode="HTML"
+Entre em contato com o suporte.
+"""
 
         )
 
         return False
 
+
+
+    # VERIFICAR MANUTENÇÃO
+
+    if em_manutencao():
+
+
+        bot.send_message(
+
+            message.chat.id,
+
+            """
+🔧 Bot em manutenção.
+
+Tente novamente mais tarde.
+"""
+
+        )
+
+        return False
+
+
+
     return True
 
 
+
 # ==========================================
-# SALDO
+# ADICIONAR LOG
 # ==========================================
 
-def adicionar_saldo(user_id, valor):
+def adicionar_log(
+
+    usuario,
+
+    acao,
+
+    detalhes
+
+):
+
 
     cursor.execute(
+
         """
-        UPDATE usuarios
+        INSERT INTO logs(
 
-        SET saldo = saldo + ?
+            usuario,
 
-        WHERE id=?
-        """,
-        (
-            valor,
-            user_id
+            acao,
+
+            detalhes,
+
+            data
+
         )
+
+        VALUES(
+
+            ?,?,?,?
+
+        )
+
+        """,
+
+        (
+
+            usuario,
+
+            acao,
+
+            detalhes,
+
+            agora()
+
+        )
+
     )
+
 
     conn.commit()
 
 
-def remover_saldo(user_id, valor):
-
-    cursor.execute(
-        """
-        UPDATE usuarios
-
-        SET saldo = saldo - ?
-
-        WHERE id=?
-        """,
-        (
-            valor,
-            user_id
-        )
-    )
-
-    conn.commit()
-
 
 # ==========================================
-# HISTÓRICO
+# ADICIONAR HISTÓRICO
 # ==========================================
 
 def adicionar_historico(
@@ -190,7 +264,9 @@ def adicionar_historico(
 
 ):
 
+
     cursor.execute(
+
         """
         INSERT INTO historico(
 
@@ -211,104 +287,305 @@ def adicionar_historico(
             ?,?,?,?,?
 
         )
+
         """,
+
         (
+
             usuario,
+
             tipo,
+
             descricao,
+
             valor,
+
             agora()
+
         )
+
     )
+
 
     conn.commit()
 
 
+
 # ==========================================
-# LOGS
+# ADICIONAR SALDO
 # ==========================================
 
-def adicionar_log(
+def adicionar_saldo(
 
     usuario,
 
-    acao,
-
-    detalhes
+    valor
 
 ):
 
+
     cursor.execute(
+
         """
-        INSERT INTO logs(
+        UPDATE usuarios
 
-            usuario,
+        SET saldo = saldo + ?
 
-            acao,
+        WHERE id=?
 
-            detalhes,
-
-            data
-
-        )
-
-        VALUES(
-
-            ?,?,?,?
-
-        )
         """,
+
         (
-            usuario,
-            acao,
-            detalhes,
-            agora()
-        )
-    )
 
-    conn.commit()
-
-
-# ==========================================
-# CONFIGURAÇÕES
-# ==========================================
-
-def obter_config(chave):
-
-    cursor.execute(
-        """
-        SELECT valor
-
-        FROM configuracoes
-
-        WHERE chave=?
-        """,
-        (chave,)
-    )
-
-    valor = cursor.fetchone()
-
-    if valor:
-
-        return valor[0]
-
-    return None
-
-
-def alterar_config(chave, valor):
-
-    cursor.execute(
-        """
-        UPDATE configuracoes
-
-        SET valor=?
-
-        WHERE chave=?
-        """,
-        (
             valor,
-            chave
+
+            usuario
+
         )
+
     )
 
+
     conn.commit()
+
+
+
+# ==========================================
+# REMOVER SALDO
+# ==========================================
+
+def remover_saldo(
+
+    usuario,
+
+    valor
+
+):
+
+
+    cursor.execute(
+
+        """
+        UPDATE usuarios
+
+        SET saldo = saldo - ?
+
+        WHERE id=?
+
+        """,
+
+        (
+
+            valor,
+
+            usuario
+
+        )
+
+    )
+
+
+    conn.commit()# ==========================================
+# BUSCAR USUÁRIO
+# ==========================================
+
+def buscar_usuario(user_id):
+
+    cursor.execute(
+
+        """
+        SELECT *
+
+        FROM usuarios
+
+        WHERE id=?
+
+        """,
+
+        (user_id,)
+
+    )
+
+
+    return cursor.fetchone()
+
+
+
+# ==========================================
+# VERIFICAR EXISTÊNCIA DO USUÁRIO
+# ==========================================
+
+def usuario_existe(user_id):
+
+    cursor.execute(
+
+        """
+        SELECT id
+
+        FROM usuarios
+
+        WHERE id=?
+
+        """,
+
+        (user_id,)
+
+    )
+
+
+    resultado = cursor.fetchone()
+
+
+    return resultado is not None
+
+
+
+# ==========================================
+# ATUALIZAR ÚLTIMO ACESSO
+# ==========================================
+
+def atualizar_acesso(user_id):
+
+    cursor.execute(
+
+        """
+        UPDATE usuarios
+
+        SET ultimo_acesso=?
+
+        WHERE id=?
+
+        """,
+
+        (
+
+            agora(),
+
+            user_id
+
+        )
+
+    )
+
+
+    conn.commit()
+
+
+
+# ==========================================
+# BLOQUEAR USUÁRIO
+# ==========================================
+
+def bloquear_usuario(user_id):
+
+    cursor.execute(
+
+        """
+        UPDATE usuarios
+
+        SET bloqueado=1
+
+        WHERE id=?
+
+        """,
+
+        (user_id,)
+
+    )
+
+
+    conn.commit()
+
+
+
+# ==========================================
+# DESBLOQUEAR USUÁRIO
+# ==========================================
+
+def desbloquear_usuario(user_id):
+
+    cursor.execute(
+
+        """
+        UPDATE usuarios
+
+        SET bloqueado=0
+
+        WHERE id=?
+
+        """,
+
+        (user_id,)
+
+    )
+
+
+    conn.commit()
+
+
+
+# ==========================================
+# CONTAR USUÁRIOS
+# ==========================================
+
+def total_usuarios():
+
+    cursor.execute(
+
+        """
+        SELECT COUNT(*)
+
+        FROM usuarios
+
+        """
+
+    )
+
+
+    return cursor.fetchone()[0]
+
+
+
+# ==========================================
+# TOTAL DE SALDO
+# ==========================================
+
+def total_saldo():
+
+    cursor.execute(
+
+        """
+        SELECT SUM(saldo)
+
+        FROM usuarios
+
+        """
+
+    )
+
+
+    resultado = cursor.fetchone()[0]
+
+
+    if resultado is None:
+
+        return 0
+
+
+    return resultado
+
+
+
+# ==========================================
+# LIMPAR CACHE (RESERVADO)
+# ==========================================
+
+def limpar_cache():
+
+    pass
+
+
+
+# ==========================================
+# FIM DO UTILS
+# ==========================================
