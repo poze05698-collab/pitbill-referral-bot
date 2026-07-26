@@ -2,14 +2,14 @@
 # TOKEN DO BOT
 # ==========================================
 
-TOKEN = "COLOQUE_SEU_TOKEN_AQUI"
+TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg"
 
 # ==========================================
 # ADMINISTRADOR
 # ==========================================
 
 # Seu ID do Telegram
-ADMIN_ID = 123456789
+ADMIN_ID = 6172813641
 
 # ==========================================
 # CANAL / GRUPO
@@ -17,10 +17,10 @@ ADMIN_ID = 123456789
 
 # Obrigatório para validar indicações
 
-GRUPO_ID = -1000000000000
+GRUPO_ID = -1003355182545
 
 # Username do grupo
-GRUPO_LINK = "https://t.me/seugrupo"
+GRUPO_LINK = "https://t.me/pitbullslotsofc"
 
 # ==========================================
 # VALORES
@@ -56,7 +56,7 @@ PIX_OBRIGATORIO = True
 
 NOME_BOT = "Bot Indicações"
 
-SUPORTE = "@SeuSuporte"
+SUPORTE = "@PitbullSlots011"
 
 # ==========================================
 # ANTI SPAM
@@ -86,3 +86,14 @@ entre em contato com o suporte.
 # ==========================================
 
 VERSAO = "2.0"
+# ==========================================
+# SAQUES
+# ==========================================
+
+SAQUES_ATIVOS = True
+
+# ==========================================
+# MODO MANUTENÇÃO
+# ==========================================
+
+MANUTENCAO = False
