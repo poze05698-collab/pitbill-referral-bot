@@ -1,7 +1,7 @@
 from database import cursor
 
 # ==========================================
-# USUÁRIO BLOQUEADO
+# VERIFICAR SE O USUÁRIO ESTÁ BLOQUEADO
 # ==========================================
 
 def usuario_bloqueado(user_id):
@@ -9,9 +9,7 @@ def usuario_bloqueado(user_id):
     cursor.execute(
         """
         SELECT bloqueado
-
         FROM usuarios
-
         WHERE id=?
         """,
         (user_id,)
@@ -26,7 +24,7 @@ def usuario_bloqueado(user_id):
 
 
 # ==========================================
-# VERIFICAR ACESSO
+# VERIFICAR ACESSO AO BOT
 # ==========================================
 
 def verificar_acesso(bot, message):
@@ -40,9 +38,11 @@ def verificar_acesso(bot, message):
             """
 🚫 <b>CONTA BLOQUEADA</b>
 
-Seu acesso ao bot foi bloqueado pelo administrador.
+Sua conta foi bloqueada pelo administrador.
 
-Entre em contato com o suporte para mais informações.
+Você não pode utilizar o bot enquanto estiver bloqueado.
+
+Entre em contato com o suporte caso ache que isso foi um erro.
 """,
 
             parse_mode="HTML"
@@ -52,3 +52,12 @@ Entre em contato com o suporte para mais informações.
         return False
 
     return True
+
+
+# ==========================================
+# VERIFICAR SE É ADMIN
+# ==========================================
+
+def eh_admin(user_id, admin_id):
+
+    return user_id == admin_id
