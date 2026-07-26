@@ -3,44 +3,66 @@ from telebot.types import (
     KeyboardButton
 )
 
+
 # ==========================================
-# MENU PRINCIPAL
+# MENU PRINCIPAL USUÁRIO
 # ==========================================
 
 def menu_principal():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
+
     )
+
 
     menu.add(
 
         KeyboardButton("👤 Perfil"),
+
         KeyboardButton("💰 Saldo")
 
     )
 
+
     menu.add(
 
         KeyboardButton("🔗 Meu Link"),
+
         KeyboardButton("👥 Indicados")
 
     )
 
+
+    menu.add(
+
+        KeyboardButton("👥 Entrar no Grupo"),
+
+        KeyboardButton("✅ Já Entrei")
+
+    )
+
+
     menu.add(
 
         KeyboardButton("💳 Pix"),
+
         KeyboardButton("💸 Solicitar Saque")
 
     )
 
+
     menu.add(
 
         KeyboardButton("📜 Histórico"),
+
         KeyboardButton("📜 Regras")
 
     )
+
 
     menu.add(
 
@@ -48,7 +70,9 @@ def menu_principal():
 
     )
 
+
     return menu
+
 
 
 # ==========================================
@@ -58,16 +82,22 @@ def menu_principal():
 def menu_pix():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
+
     )
+
 
     menu.add(
 
         KeyboardButton("➕ Cadastrar Pix"),
+
         KeyboardButton("✏️ Alterar Pix")
 
     )
+
 
     menu.add(
 
@@ -75,37 +105,37 @@ def menu_pix():
 
     )
 
+
     menu.add(
 
         KeyboardButton("🏠 Menu")
 
     )
 
-    return menu
 
-
-# ==========================================
+    return menu# ==========================================
 # MENU SAQUES
 # ==========================================
 
 def menu_saques():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
-    )
-
-    menu.add(
-
-        KeyboardButton("💸 Solicitar Saque")
 
     )
 
+
     menu.add(
+
+        KeyboardButton("💸 Solicitar Saque"),
 
         KeyboardButton("📜 Histórico")
 
     )
+
 
     menu.add(
 
@@ -113,7 +143,9 @@ def menu_saques():
 
     )
 
+
     return menu
+
 
 
 # ==========================================
@@ -123,58 +155,76 @@ def menu_saques():
 def menu_admin():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
+
     )
+
 
     menu.add(
 
         KeyboardButton("📊 Estatísticas"),
+
         KeyboardButton("👥 Usuários")
 
     )
 
+
     menu.add(
 
         KeyboardButton("💸 Saques"),
+
         KeyboardButton("🏆 Ranking")
 
     )
 
+
     menu.add(
 
         KeyboardButton("💰 Adicionar Saldo"),
+
         KeyboardButton("➖ Remover Saldo")
 
     )
 
+
     menu.add(
 
         KeyboardButton("🚫 Banir"),
+
         KeyboardButton("✅ Desbanir")
 
     )
 
+
     menu.add(
 
         KeyboardButton("📢 Avisar"),
-        KeyboardButton("🎁 Criar Cupom")
 
-    )
-
-    menu.add(
-
-        KeyboardButton("⚙️ Configurações"),
         KeyboardButton("📋 Logs")
 
     )
 
+
     menu.add(
 
         KeyboardButton("🔧 Manutenção"),
+
         KeyboardButton("💾 Backup")
 
     )
+
+
+    menu.add(
+
+        KeyboardButton("🎁 Criar Cupom"),
+
+        KeyboardButton("⚙️ Configurações")
+
+    )
+
 
     menu.add(
 
@@ -182,7 +232,9 @@ def menu_admin():
 
     )
 
+
     return menu
+
 
 
 # ==========================================
@@ -192,30 +244,40 @@ def menu_admin():
 def menu_config():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
+
     )
+
 
     menu.add(
 
         KeyboardButton("💰 Valor Indicação"),
+
         KeyboardButton("💸 Valor Saque")
 
     )
 
+
     menu.add(
 
         KeyboardButton("👥 Grupo"),
+
         KeyboardButton("🛡 Anti Fraude")
 
     )
 
+
     menu.add(
 
-        KeyboardButton("📜 Logs"),
-        KeyboardButton("🔧 Manutenção")
+        KeyboardButton("🔧 Manutenção"),
+
+        KeyboardButton("📋 Logs")
 
     )
+
 
     menu.add(
 
@@ -223,28 +285,68 @@ def menu_config():
 
     )
 
-    return menu
 
-
-# ==========================================
+    return menu# ==========================================
 # MENU CONFIRMAÇÃO
 # ==========================================
 
 def menu_confirmacao():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True,
+
         row_width=2
+
     )
+
 
     menu.add(
 
         KeyboardButton("✅ Confirmar"),
+
         KeyboardButton("❌ Cancelar")
 
     )
 
+
     return menu
+
+
+
+# ==========================================
+# MENU CONFIRMAR ENTRADA GRUPO
+# ==========================================
+
+def menu_grupo():
+
+    menu = ReplyKeyboardMarkup(
+
+        resize_keyboard=True,
+
+        row_width=2
+
+    )
+
+
+    menu.add(
+
+        KeyboardButton("👥 Entrar no Grupo"),
+
+        KeyboardButton("✅ Já Entrei")
+
+    )
+
+
+    menu.add(
+
+        KeyboardButton("🏠 Menu")
+
+    )
+
+
+    return menu
+
 
 
 # ==========================================
@@ -254,13 +356,41 @@ def menu_confirmacao():
 def menu_voltar():
 
     menu = ReplyKeyboardMarkup(
+
         resize_keyboard=True
+
     )
+
 
     menu.add(
 
         KeyboardButton("🏠 Menu")
 
     )
+
+
+    return menu
+
+
+
+# ==========================================
+# MENU SIMPLES
+# ==========================================
+
+def menu_cancelar():
+
+    menu = ReplyKeyboardMarkup(
+
+        resize_keyboard=True
+
+    )
+
+
+    menu.add(
+
+        KeyboardButton("❌ Cancelar")
+
+    )
+
 
     return menu
