@@ -1,24 +1,14 @@
 from database import conn, cursor
 
-from config import (
-    ADMIN_ID
-)
+from config import ADMIN_ID
 
-from teclado import (
-    menu_admin,
-    menu_principal
-)
+from teclado import menu_admin
 
 from utils import (
     adicionar_log,
-    adicionar_saldo,
-    remover_saldo,
-    bloquear_usuario,
-    desbloquear_usuario,
     total_usuarios,
     total_saldo,
-    alterar_config,
-    agora
+    alterar_config
 )
 
 
@@ -41,15 +31,17 @@ def registrar_admin(bot):
 
 
     # ======================================
-    # ABRIR PAINEL
+    # PAINEL
     # ======================================
 
     @bot.message_handler(commands=["admin"])
-    def painel_admin(message):
+    def painel(message):
+
 
         if not is_admin(message.from_user.id):
 
             return
+
 
 
         bot.send_message(
@@ -79,14 +71,17 @@ Escolha uma opção:
     )
     def estatisticas(message):
 
+
         if not is_admin(message.from_user.id):
 
             return
 
 
+
         usuarios = total_usuarios()
 
         saldo = total_saldo()
+
 
 
         bot.send_message(
@@ -102,7 +97,7 @@ Escolha uma opção:
 {usuarios}
 
 
-💰 Saldo distribuído:
+💰 Saldo:
 
 R$ {saldo:.2f}
 """,
@@ -110,325 +105,189 @@ R$ {saldo:.2f}
             parse_mode="HTML"
 
         )    # ======================================
-    # LISTAR USUÁRIOS
+    # USUÁRIOS
     # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "👥 Usuários"
     )
-    def usuarios(message):
+    def listar_usuarios(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
-
-        cursor.execute(
-
-            """
-            SELECT
-
-                id,
-
-                nome,
-
-                bloqueado
-
+        cursor.execute("""
+            SELECT id, nome, saldo, bloqueado
             FROM usuarios
-
             ORDER BY id DESC
-
             LIMIT 20
+        """)
 
-            """
+        usuarios = cursor.fetchall()
 
-        )
-
-
-        lista = cursor.fetchall()
-
-
+        if not usuarios:
+            bot.send_message(
+                message.chat.id,
+                "Nenhum usuário encontrado."
+            )
+            return
 
         texto = "👥 <b>ÚLTIMOS USUÁRIOS</b>\n\n"
 
+        for usuario in usuarios:
 
+            status = "🚫 Bloqueado" if usuario[3] else "✅ Ativo"
 
-        for usuario in lista:
-
-
-            status = (
-
-                "🚫 Bloqueado"
-
-                if usuario[2] == 1
-
-                else
-
-                "✅ Ativo"
-
+            texto += (
+                f"🆔 {usuario[0]}\n"
+                f"👤 {usuario[1]}\n"
+                f"💰 R$ {usuario[2]:.2f}\n"
+                f"{status}\n"
+                "────────────\n"
             )
 
-
-            texto += f"""
-
-🆔 {usuario[0]}
-
-👤 {usuario[1]}
-
-{status}
-
-────────────
-
-"""
-
-
-
         bot.send_message(
-
             message.chat.id,
-
             texto,
-
             parse_mode="HTML"
-
         )
 
 
-
     # ======================================
-    # BANIR USUÁRIO
+    # BANIR
     # ======================================
 
-    @bot.message_handler(
-        commands=["banir"]
-    )
+    @bot.message_handler(commands=["banir"])
     def banir(message):
 
         if not is_admin(message.from_user.id):
-
             return
-
 
         try:
-
-            usuario = int(
-
-                message.text.split()[1]
-
-            )
-
-
+            user = int(message.text.split()[1])
         except:
-
-
             bot.reply_to(
-
                 message,
-
                 "Use:\n/banir ID"
-
             )
-
             return
 
+        cursor.execute(
+            "UPDATE usuarios SET bloqueado=1 WHERE id=?",
+            (user,)
+        )
 
-
-        bloquear_usuario(usuario)
-
-
+        conn.commit()
 
         adicionar_log(
-
-            usuario,
-
+            user,
             "BANIMENTO",
-
-            "Usuário bloqueado pelo administrador."
-
+            "Conta bloqueada pelo administrador."
         )
-
-
 
         bot.reply_to(
-
             message,
-
-            f"🚫 Usuário {usuario} bloqueado."
-
+            "✅ Usuário bloqueado."
         )
 
 
-
-        try:
-
-            bot.send_message(
-
-                usuario,
-
-                """
-🚫 Sua conta foi bloqueada.
-
-Você não poderá utilizar o bot.
-"""
-
-            )
-
-
-        except:
-
-            pass
-
-
-
     # ======================================
-    # DESBANIR USUÁRIO
+    # DESBANIR
     # ======================================
 
-    @bot.message_handler(
-        commands=["desbanir"]
-    )
+    @bot.message_handler(commands=["desbanir"])
     def desbanir(message):
 
         if not is_admin(message.from_user.id):
-
             return
-
-
 
         try:
-
-            usuario = int(
-
-                message.text.split()[1]
-
-            )
-
-
+            user = int(message.text.split()[1])
         except:
-
-
             bot.reply_to(
-
                 message,
-
                 "Use:\n/desbanir ID"
-
             )
-
             return
 
+        cursor.execute(
+            "UPDATE usuarios SET bloqueado=0 WHERE id=?",
+            (user,)
+        )
 
-
-        desbloquear_usuario(usuario)
-
-
+        conn.commit()
 
         adicionar_log(
-
-            usuario,
-
+            user,
             "DESBANIMENTO",
-
-            "Usuário liberado pelo administrador."
-
+            "Conta desbloqueada."
         )
-
-
 
         bot.reply_to(
-
             message,
-
-            f"✅ Usuário {usuario} desbloqueado."
-
+            "✅ Usuário desbloqueado."
         )
-
 
 
     # ======================================
     # ADICIONAR SALDO
     # ======================================
 
-    @bot.message_handler(
-        commands=["addsaldo"]
-    )
-    def add_saldo(message):
+    @bot.message_handler(commands=["addsaldo"])
+    def adicionar_saldo(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
-
-
         try:
-
             dados = message.text.split()
 
             usuario = int(dados[1])
 
-            valor = float(dados[2])
-
+            valor = float(
+                dados[2].replace(",", ".")
+            )
 
         except:
 
-
             bot.reply_to(
-
                 message,
-
                 "Use:\n/addsaldo ID VALOR"
-
             )
-
             return
 
-
-
-        adicionar_saldo(
-
-            usuario,
-
-            valor
-
+        cursor.execute(
+            """
+            UPDATE usuarios
+            SET saldo = saldo + ?
+            WHERE id=?
+            """,
+            (valor, usuario)
         )
 
-
+        conn.commit()
 
         adicionar_log(
-
             usuario,
-
             "SALDO",
-
             f"Adicionado R$ {valor:.2f}"
-
         )
-
 
         bot.reply_to(
-
             message,
-
             "✅ Saldo adicionado."
-
         )
-
 
 
     # ======================================
     # REMOVER SALDO
     # ======================================
 
-    @bot.message_handler(
-        commands=["removersaldo"]
-    )
-    def remover_saldo_admin(message):
+    @bot.message_handler(commands=["removersaldo"])
+    def remover_saldo(message):
 
         if not is_admin(message.from_user.id):
-
             return
-
-
 
         try:
 
@@ -436,785 +295,421 @@ Você não poderá utilizar o bot.
 
             usuario = int(dados[1])
 
-            valor = float(dados[2])
-
+            valor = float(
+                dados[2].replace(",", ".")
+            )
 
         except:
 
-
             bot.reply_to(
-
                 message,
-
                 "Use:\n/removersaldo ID VALOR"
-
             )
-
             return
-
-
-
-        remover_saldo(
-
-            usuario,
-
-            valor
-
-        )
-
-
-
-        adicionar_log(
-
-            usuario,
-
-            "SALDO",
-
-            f"Removido R$ {valor:.2f}"
-
-        )
-
-
-        bot.reply_to(
-
-            message,
-
-            "✅ Saldo removido."
-
-        )    # ======================================
-    # AVISAR TODOS OS USUÁRIOS
-    # ======================================
-
-    @bot.message_handler(
-        commands=["avisar"]
-    )
-    def avisar_todos(message):
-
-        if not is_admin(message.from_user.id):
-
-            return
-
-
-        texto = message.text.replace(
-
-            "/avisar",
-
-            ""
-
-        ).strip()
-
-
-
-        if texto == "":
-
-
-            bot.reply_to(
-
-                message,
-
-                "Use:\n/avisar mensagem"
-
-            )
-
-            return
-
-
 
         cursor.execute(
-
             """
-            SELECT id
-
-            FROM usuarios
-
-            """
-
+            UPDATE usuarios
+            SET saldo = saldo - ?
+            WHERE id=?
+            """,
+            (valor, usuario)
         )
 
+        conn.commit()
+
+        adicionar_log(
+            usuario,
+            "SALDO",
+            f"Removido R$ {valor:.2f}"
+        )
+
+        bot.reply_to(
+            message,
+            "✅ Saldo removido."
+        )    # ======================================
+    # BOTÃO AVISAR
+    # ======================================
+
+    @bot.message_handler(func=lambda m: m.text == "📢 Avisar")
+    def aviso_menu(message):
+
+        if not is_admin(message.from_user.id):
+            return
+
+        bot.send_message(
+            message.chat.id,
+            """
+📢 Envie a mensagem que deseja enviar para todos os usuários.
+
+Exemplo:
+
+Promoção liberada!
+
+Cancelar: /cancelar
+"""
+        )
+
+        bot.register_next_step_handler(
+            message,
+            enviar_aviso
+        )
+
+
+    def enviar_aviso(message):
+
+        if message.text == "/cancelar":
+
+            bot.send_message(
+                message.chat.id,
+                "❌ Operação cancelada."
+            )
+
+            return
+
+        cursor.execute("SELECT id FROM usuarios")
 
         usuarios = cursor.fetchall()
 
-
         enviados = 0
-
-
 
         for usuario in usuarios:
 
-
             try:
 
-
                 bot.send_message(
-
                     usuario[0],
-
-                    texto
-
+                    f"📢 {message.text}"
                 )
-
 
                 enviados += 1
 
-
-
             except:
-
-
                 pass
 
-
-
         adicionar_log(
-
             ADMIN_ID,
+            "AVISO",
+            f"Mensagem enviada para {enviados} usuários."
+        )
 
-            "AVISO GERAL",
-
-            f"Enviado para {enviados} usuários."
-
+        bot.send_message(
+            message.chat.id,
+            f"✅ Aviso enviado para {enviados} usuários."
         )
 
 
-
-        bot.reply_to(
-
-            message,
-
-            f"📢 Aviso enviado para {enviados} usuários."
-
-        )
-
-
-
     # ======================================
-    # MANUTENÇÃO
+    # BOTÃO MANUTENÇÃO
     # ======================================
 
-    @bot.message_handler(
-        commands=["manutencao"]
-    )
-    def manutencao(message):
+    @bot.message_handler(func=lambda m: m.text == "🔧 Manutenção")
+    def manutencao_menu(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
+        bot.send_message(
+            message.chat.id,
+            """
+🔧 Escolha:
 
+Digite:
 
-        partes = message.text.split()
-
-
-
-        if len(partes) < 2:
-
-
-            bot.reply_to(
-
-                message,
-
-                """
-Use:
-
-/manutencao ON
+ON
 
 ou
 
-/manutencao OFF
+OFF
 """
+        )
 
-            )
-
-            return
-
-
-
-        status = partes[1].upper()
+        bot.register_next_step_handler(
+            message,
+            alterar_manutencao
+        )
 
 
+    def alterar_manutencao(message):
 
-        if status == "ON":
+        resposta = message.text.upper()
 
+        if resposta == "ON":
 
             alterar_config(
-
                 "modo_manutencao",
-
                 "SIM"
-
             )
 
+            bot.send_message(
+                message.chat.id,
+                "✅ Manutenção ativada."
+            )
 
-            resposta = "🔧 Manutenção ativada."
+        elif resposta == "OFF":
 
+            alterar_config(
+                "modo_manutencao",
+                "NAO"
+            )
 
+            bot.send_message(
+                message.chat.id,
+                "✅ Manutenção desativada."
+            )
 
         else:
 
-
-            alterar_config(
-
-                "modo_manutencao",
-
-                "NAO"
-
+            bot.send_message(
+                message.chat.id,
+                "Digite apenas ON ou OFF."
             )
 
 
-            resposta = "✅ Manutenção desativada."
-
-
-
-        adicionar_log(
-
-            ADMIN_ID,
-
-            "MANUTENÇÃO",
-
-            status
-
-        )
-
-
-        bot.reply_to(
-
-            message,
-
-            resposta
-
-        )
-
-
-
     # ======================================
-    # LOGS
+    # BOTÃO LOGS
     # ======================================
 
-    @bot.message_handler(
-        commands=["logs"]
-    )
-    def logs(message):
+    @bot.message_handler(func=lambda m: m.text == "📋 Logs")
+    def mostrar_logs(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
-
-
-        cursor.execute(
-
-            """
-            SELECT
-
-                usuario,
-
-                acao,
-
-                detalhes,
-
-                data
-
+        cursor.execute("""
+            SELECT usuario, acao, detalhes, data
             FROM logs
-
             ORDER BY id DESC
+            LIMIT 20
+        """)
 
-            LIMIT 15
+        logs = cursor.fetchall()
 
-            """
+        if not logs:
 
-        )
+            bot.send_message(
+                message.chat.id,
+                "Nenhum log encontrado."
+            )
 
-
-        registros = cursor.fetchall()
-
-
+            return
 
         texto = "📋 <b>ÚLTIMOS LOGS</b>\n\n"
 
+        for log in logs:
 
-
-        for log in registros:
-
-
-            texto += f"""
-👤 {log[0]}
-
-⚙️ {log[1]}
-
-📝 {log[2]}
-
-📅 {log[3]}
-
-────────────
-"""
-
-
+            texto += (
+                f"👤 {log[0]}\n"
+                f"⚙ {log[1]}\n"
+                f"📝 {log[2]}\n"
+                f"📅 {log[3]}\n"
+                "────────────\n"
+            )
 
         bot.send_message(
-
             message.chat.id,
-
             texto,
-
             parse_mode="HTML"
-
         )
 
 
-
     # ======================================
-    # BACKUP
+    # BOTÃO BACKUP
     # ======================================
 
-    @bot.message_handler(
-        commands=["backup"]
-    )
+    @bot.message_handler(func=lambda m: m.text == "💾 Backup")
     def backup(message):
 
         if not is_admin(message.from_user.id):
-
             return
-
-
 
         try:
 
+            with open("database.db", "rb") as banco:
 
-            arquivo = open(
-
-                "database.db",
-
-                "rb"
-
-            )
-
-
-            bot.send_document(
-
-                message.chat.id,
-
-                arquivo,
-
-                caption="💾 Backup do banco."
-
-            )
-
-
-            arquivo.close()
-
-
+                bot.send_document(
+                    message.chat.id,
+                    banco,
+                    caption="💾 Backup do banco de dados."
+                )
 
         except Exception as erro:
 
-
-            bot.reply_to(
-
-                message,
-
-                f"Erro: {erro}"
-
-            )
-
-
-
-    # ======================================
-    # SAQUES PENDENTES
+            bot.send_message(
+                message.chat.id,
+                f"Erro ao gerar backup:\n{erro}"
+            )    # ======================================
+    # BOTÃO CRIAR CUPOM
     # ======================================
 
-    @bot.message_handler(
-        commands=["pendentes"]
-    )
-    def saques_pendentes(message):
+    @bot.message_handler(func=lambda m: m.text == "🎁 Criar Cupom")
+    def criar_cupom_menu(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
-
-
-        cursor.execute(
-
+        bot.send_message(
+            message.chat.id,
             """
-            SELECT
+🎁 Informe os dados do cupom:
 
-                id,
+Formato:
 
-                usuario,
+CODIGO VALOR LIMITE
 
-                valor,
+Exemplo:
 
-                status
+BEMVINDO 10 100
+"""
+        )
 
-            FROM saques
-
-            WHERE status='PENDENTE'
-
-            """
-
+        bot.register_next_step_handler(
+            message,
+            salvar_cupom
         )
 
 
-        lista = cursor.fetchall()
-
-
-
-        if not lista:
-
-
-            bot.send_message(
-
-                message.chat.id,
-
-                "✅ Nenhum saque pendente."
-
-            )
-
-            return
-
-
-
-        texto = "💸 <b>SAQUES PENDENTES</b>\n\n"
-
-
-
-        for saque in lista:
-
-
-            texto += f"""
-🆔 {saque[0]}
-
-👤 Usuário:
-{saque[1]}
-
-💰 Valor:
-R$ {saque[2]:.2f}
-
-📌 Status:
-{saque[3]}
-
-────────────
-"""
-
-
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
-
-            parse_mode="HTML"
-
-        )    # ======================================
-    # CRIAR CUPOM
-    # ======================================
-
-    @bot.message_handler(
-        commands=["criarcupom"]
-    )
-    def criar_cupom(message):
-
-        if not is_admin(message.from_user.id):
-
-            return
-
+    def salvar_cupom(message):
 
         try:
 
             dados = message.text.split()
 
+            codigo = dados[0].upper()
 
-            codigo = dados[1].upper()
+            valor = float(dados[1].replace(",", "."))
 
-            valor = float(dados[2])
-
-            limite = int(dados[3])
-
+            limite = int(dados[2])
 
         except:
 
-
-            bot.reply_to(
-
-                message,
-
-                """
-Use:
-
-/criarcupom CODIGO VALOR LIMITE
-"""
-
+            bot.send_message(
+                message.chat.id,
+                "❌ Formato inválido."
             )
 
             return
 
 
-
-        cursor.execute(
-
-            """
-            INSERT INTO cupons(
-
-                codigo,
-
-                valor,
-
-                limite,
-
-                usados,
-
-                ativo
-
-            )
-
-            VALUES(
-
-                ?,?,?,0,1
-
-            )
-
-            """,
-
+        cursor.execute("""
+            INSERT INTO cupons
             (
-
                 codigo,
-
                 valor,
-
-                limite
-
+                limite,
+                usados,
+                ativo
             )
-
-        )
-
+            VALUES
+            (
+                ?,?,?,0,1
+            )
+        """,
+        (
+            codigo,
+            valor,
+            limite
+        ))
 
         conn.commit()
 
-
-
         adicionar_log(
-
             ADMIN_ID,
-
             "CUPOM",
+            f"Cupom {codigo} criado."
+        )
 
-            f"Criado {codigo}"
-
+        bot.send_message(
+            message.chat.id,
+            "✅ Cupom criado com sucesso."
         )
 
 
-        bot.reply_to(
-
-            message,
-
-            "🎁 Cupom criado."
-
-        )
-
-
-
     # ======================================
-    # REMOVER CUPOM
+    # BOTÃO CONFIGURAÇÕES
     # ======================================
 
-    @bot.message_handler(
-        commands=["removercupom"]
-    )
-    def remover_cupom(message):
+    @bot.message_handler(func=lambda m: m.text == "⚙️ Configurações")
+    def configuracoes(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
+        cursor.execute("""
+            SELECT chave, valor
+            FROM configuracoes
+            ORDER BY chave
+        """)
 
+        configuracoes = cursor.fetchall()
 
-        try:
+        texto = "⚙️ <b>CONFIGURAÇÕES DO BOT</b>\n\n"
 
-            codigo = message.text.split()[1].upper()
+        if not configuracoes:
 
+            texto += "Nenhuma configuração cadastrada."
 
-        except:
+        else:
 
+            for chave, valor in configuracoes:
 
-            bot.reply_to(
+                texto += (
+                    f"• <b>{chave}</b>: {valor}\n"
+                )
 
-                message,
-
-                "Use:\n/removercupom CODIGO"
-
-            )
-
-            return
-
-
-
-        cursor.execute(
-
-            """
-            DELETE FROM cupons
-
-            WHERE codigo=?
-
-            """,
-
-            (codigo,)
-
+        bot.send_message(
+            message.chat.id,
+            texto,
+            parse_mode="HTML"
         )
-
-
-        conn.commit()
-
-
-
-        adicionar_log(
-
-            ADMIN_ID,
-
-            "CUPOM REMOVIDO",
-
-            codigo
-
-        )
-
-
-        bot.reply_to(
-
-            message,
-
-            "✅ Cupom removido."
-
-        )
-
 
 
     # ======================================
     # RANKING ADMIN
     # ======================================
 
-    @bot.message_handler(
-        commands=["rankingadmin"]
-    )
+    @bot.message_handler(func=lambda m: m.text == "🏆 Ranking")
     def ranking_admin(message):
 
         if not is_admin(message.from_user.id):
-
             return
 
-
-
-        cursor.execute(
-
-            """
+        cursor.execute("""
             SELECT
-
                 nome,
-
                 convidados,
-
                 saldo
-
             FROM usuarios
-
             ORDER BY convidados DESC
-
             LIMIT 10
-
-            """
-
-        )
-
+        """)
 
         ranking = cursor.fetchall()
 
-
-
-        texto = "🏆 <b>RANKING ADMIN</b>\n\n"
-
-
+        texto = "🏆 <b>RANKING GERAL</b>\n\n"
 
         posicao = 1
 
-
-
         for usuario in ranking:
 
-
-            texto += f"""
-{posicao}º {usuario[0]}
-
-👥 Convites:
-{usuario[1]}
-
-💰 Saldo:
-R$ {usuario[2]:.2f}
-
-────────────
-"""
-
+            texto += (
+                f"{posicao}º {usuario[0]}\n"
+                f"👥 {usuario[1]} indicações\n"
+                f"💰 R$ {usuario[2]:.2f}\n"
+                "────────────\n"
+            )
 
             posicao += 1
 
+        if posicao == 1:
 
+            texto += "Nenhum usuário encontrado."
 
         bot.send_message(
-
             message.chat.id,
-
             texto,
-
             parse_mode="HTML"
-
         )
-
-
-
-    # ======================================
-    # CONFIGURAÇÕES
-    # ======================================
-
-    @bot.message_handler(
-        commands=["config"]
-    )
-    def configuracoes(message):
-
-        if not is_admin(message.from_user.id):
-
-            return
-
-
-
-        bot.send_message(
-
-            message.chat.id,
-
-            """
-⚙️ <b>CONFIGURAÇÕES</b>
-
-
-Comandos:
-
-
-🔧 Manutenção:
-
-/manutencao ON
-
-/manutencao OFF
-
-
-🎁 Criar cupom:
-
-/criarcupom CODIGO VALOR LIMITE
-
-
-💾 Backup:
-
-/backup
-""",
-
-            parse_mode="HTML"
-
-        )
-
 
 
 # ==========================================
