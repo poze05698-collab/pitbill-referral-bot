@@ -13,18 +13,23 @@ from utils import (
 )
 
 
+
 # ==========================================
-# PROCESSAR LINK DE CONVITE
-# CHAMADO PELO usuario.py
+# PROCESSAR CONVITE
+# Chamado pelo usuario.py
 # ==========================================
 
 def processar_convite(user_id, texto):
 
+
     if not texto:
+
         return None
 
 
+
     partes = texto.split()
+
 
 
     if len(partes) < 2:
@@ -32,7 +37,9 @@ def processar_convite(user_id, texto):
         return None
 
 
+
     codigo = partes[1]
+
 
 
     if not codigo.startswith("convite_"):
@@ -40,16 +47,21 @@ def processar_convite(user_id, texto):
         return None
 
 
+
     try:
 
         indicador = int(
 
             codigo.replace(
+
                 "convite_",
+
                 ""
+
             )
 
         )
+
 
     except:
 
@@ -57,9 +69,7 @@ def processar_convite(user_id, texto):
 
 
 
-    # ======================================
-    # BLOQUEAR AUTO INDICAÇÃO
-    # ======================================
+    # Bloquear auto indicação
 
     if indicador == user_id:
 
@@ -79,9 +89,7 @@ def processar_convite(user_id, texto):
 
 
 
-    # ======================================
-    # VERIFICAR INDICADOR
-    # ======================================
+    # Verificar indicador existe
 
     cursor.execute(
 
@@ -103,15 +111,13 @@ def processar_convite(user_id, texto):
 
 
 
-    if existe is None:
+    if not existe:
 
         return None
 
 
 
-    # ======================================
-    # VERIFICAR SE JÁ FOI INDICADO
-    # ======================================
+    # Verificar se já possui indicação
 
     cursor.execute(
 
@@ -135,9 +141,7 @@ def processar_convite(user_id, texto):
 
 
 
-    # ======================================
-    # CRIAR INDICAÇÃO
-    # ======================================
+    # Criar indicação
 
     cursor.execute(
 
@@ -201,14 +205,15 @@ def processar_convite(user_id, texto):
 
 
 
-
 # ==========================================
-# VERIFICAR ENTRADA NO GRUPO
+# VERIFICAR GRUPO
 # ==========================================
 
 def verificar_grupo(bot, user_id):
 
+
     try:
+
 
         membro = bot.get_chat_member(
 
@@ -217,6 +222,7 @@ def verificar_grupo(bot, user_id):
             user_id
 
         )
+
 
 
         if membro.status in [
@@ -232,14 +238,16 @@ def verificar_grupo(bot, user_id):
             return True
 
 
-    except Exception:
+
+    except:
+
 
         pass
 
 
 
     return False# ==========================================
-# REGISTRAR HANDLERS DE INDICAÇÃO
+# REGISTRAR INDICAÇÕES
 # ==========================================
 
 def registrar_indicacoes(bot):
@@ -255,17 +263,36 @@ def registrar_indicacoes(bot):
     def entrar_grupo(message):
 
 
+        if not GRUPO_LINK:
+
+
+            bot.send_message(
+
+                message.chat.id,
+
+                """
+⚠️ Grupo ainda não configurado.
+
+Entre em contato com o administrador.
+"""
+
+            )
+
+            return
+
+
+
         bot.send_message(
 
             message.chat.id,
 
             f"""
-👥 <b>ENTRE NO GRUPO OFICIAL</b>
+👥 <b>GRUPO OFICIAL</b>
 
 
-Clique no link abaixo:
+Entre pelo link:
 
-{GRUPO_LINK}
+🔗 {GRUPO_LINK}
 
 
 Depois volte e clique:
@@ -280,7 +307,7 @@ Depois volte e clique:
 
 
     # ======================================
-    # CONFIRMAR ENTRADA NO GRUPO
+    # CONFIRMAR ENTRADA
     # ======================================
 
     @bot.message_handler(
@@ -288,21 +315,24 @@ Depois volte e clique:
     )
     def ja_entrei(message):
 
+
         user_id = message.from_user.id
 
 
 
-        # ==================================
-        # VERIFICAR GRUPO
-        # ==================================
+        # verificar grupo
 
-        if not verificar_grupo(
+        entrou = verificar_grupo(
 
             bot,
 
             user_id
 
-        ):
+        )
+
+
+
+        if not entrou:
 
 
             bot.send_message(
@@ -312,9 +342,11 @@ Depois volte e clique:
                 f"""
 ❌ Não encontramos sua entrada no grupo.
 
+
 Entre primeiro:
 
 {GRUPO_LINK}
+
 
 Depois clique novamente:
 
@@ -323,21 +355,16 @@ Depois clique novamente:
 
             )
 
-
             return
 
 
 
-        # ==================================
-        # BUSCAR INDICAÇÃO PENDENTE
-        # ==================================
+        # Buscar indicação pendente
 
         cursor.execute(
 
             """
-            SELECT
-
-                id
+            SELECT id
 
             FROM indicacoes
 
@@ -356,7 +383,7 @@ Depois clique novamente:
 
 
 
-        if indicacao is None:
+        if not indicacao:
 
 
             bot.send_message(
@@ -364,23 +391,16 @@ Depois clique novamente:
                 message.chat.id,
 
                 """
-⚠️ Nenhuma indicação pendente encontrada.
+⚠️ Não existe indicação pendente.
 """
 
             )
-
 
             return
 
 
 
-        indicacao_id = indicacao[0]
-
-
-
-        # ==================================
-        # ATUALIZAR STATUS
-        # ==================================
+        # Atualizar status
 
         cursor.execute(
 
@@ -393,7 +413,7 @@ Depois clique novamente:
 
             """,
 
-            (indicacao_id,)
+            (indicacao[0],)
 
         )
 
@@ -408,7 +428,7 @@ Depois clique novamente:
 
             "GRUPO CONFIRMADO",
 
-            "Usuário confirmou entrada no grupo."
+            "Entrada no grupo confirmada."
 
         )
 
@@ -424,23 +444,20 @@ Depois clique novamente:
 
 Agora cadastre sua chave Pix.
 
-Quando o Pix for salvo,
-a indicação será finalizada.
+Depois disso a indicação será validada.
 """,
 
             parse_mode="HTML"
 
         )# ==========================================
-# FINALIZAR INDICAÇÃO APÓS PIX
-# CHAMADO PELO usuario.py
+# FINALIZAR INDICAÇÃO
+# Chamado pelo usuario.py após salvar Pix
 # ==========================================
 
 def finalizar_indicacao(bot, user_id):
 
 
-    # ======================================
-    # BUSCAR INDICAÇÃO
-    # ======================================
+    # Buscar indicação
 
     cursor.execute(
 
@@ -468,13 +485,13 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    if indicacao is None:
+    if not indicacao:
 
         return False
 
 
 
-    indicacao_id = indicacao[0]
+    id_indicacao = indicacao[0]
 
     indicador = indicacao[1]
 
@@ -482,9 +499,7 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # PRECISA TER CONFIRMADO O GRUPO
-    # ======================================
+    # Precisa confirmar grupo
 
     if status != "GRUPO_OK":
 
@@ -492,9 +507,7 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # VERIFICAR PIX
-    # ======================================
+    # Verificar Pix
 
     cursor.execute(
 
@@ -516,7 +529,7 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    if usuario is None:
+    if not usuario:
 
         return False
 
@@ -528,9 +541,7 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # APROVAR INDICAÇÃO
-    # ======================================
+    # Aprovar indicação
 
     cursor.execute(
 
@@ -543,15 +554,13 @@ def finalizar_indicacao(bot, user_id):
 
         """,
 
-        (indicacao_id,)
+        (id_indicacao,)
 
     )
 
 
 
-    # ======================================
-    # PAGAR RECOMPENSA
-    # ======================================
+    # Adicionar recompensa
 
     cursor.execute(
 
@@ -583,9 +592,7 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # HISTÓRICO DO INDICADOR
-    # ======================================
+    # Histórico indicador
 
     adicionar_historico(
 
@@ -601,27 +608,21 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # HISTÓRICO DO INDICADO
-    # ======================================
+    # Histórico indicado
 
     adicionar_historico(
 
         user_id,
 
-        "CADASTRO",
+        "VALIDAÇÃO",
 
-        "Indicação validada com sucesso",
+        "Cadastro validado com sucesso",
 
         0
 
     )
 
 
-
-    # ======================================
-    # LOGS
-    # ======================================
 
     adicionar_log(
 
@@ -632,6 +633,7 @@ def finalizar_indicacao(bot, user_id):
         f"Recebeu R$ {VALOR_INDICACAO:.2f}"
 
     )
+
 
 
     adicionar_log(
@@ -646,26 +648,22 @@ def finalizar_indicacao(bot, user_id):
 
 
 
-    # ======================================
-    # AVISAR INDICADOR
-    # ======================================
+    # Avisar indicador
 
     try:
+
 
         bot.send_message(
 
             indicador,
 
             f"""
-🎉 <b>PARABÉNS!</b>
+🎉 <b>INDICAÇÃO APROVADA!</b>
 
 
-Uma indicação sua foi aprovada.
+Você recebeu:
 
-
-💰 Você recebeu:
-
-<b>R$ {VALOR_INDICACAO:.2f}</b>
+💰 R$ {VALOR_INDICACAO:.2f}
 
 
 O valor já está no seu saldo.
@@ -678,31 +676,31 @@ O valor já está no seu saldo.
 
     except:
 
+
         pass
 
 
 
-    # ======================================
-    # AVISAR INDICADO
-    # ======================================
+    # Avisar indicado
 
     try:
+
 
         bot.send_message(
 
             user_id,
 
             """
-✅ Seu cadastro foi validado!
+✅ Cadastro validado!
 
-
-Sua participação está ativa.
+Sua conta está ativa.
 """
 
         )
 
 
     except:
+
 
         pass
 
@@ -714,10 +712,11 @@ Sua participação está ativa.
 
 def gerar_link_indicacao(bot, user_id):
 
+
     nome_bot = bot.get_me().username
 
 
-    link = (
+    return (
 
         f"https://t.me/{nome_bot}"
 
@@ -726,18 +725,15 @@ def gerar_link_indicacao(bot, user_id):
     )
 
 
-    return link
-
-
 
 # ==========================================
-# ESTATÍSTICAS DO USUÁRIO
+# ESTATÍSTICAS
 # ==========================================
 
 def estatisticas_indicacao(user_id):
 
 
-    resultado = {
+    dados = {
 
         "PENDENTE": 0,
 
@@ -771,61 +767,25 @@ def estatisticas_indicacao(user_id):
     )
 
 
-
-    dados = cursor.fetchall()
-
-
-
-    for status, quantidade in dados:
-
-
-        if status in resultado:
-
-            resultado[status] = quantidade
+    resultado = cursor.fetchall()
 
 
 
-    return resultado
+    for status, quantidade in resultado:
+
+
+        if status in dados:
+
+            dados[status] = quantidade
 
 
 
-# ==========================================
-# LISTAR INDICAÇÕES
-# ==========================================
-
-def listar_indicacoes(user_id):
-
-
-    cursor.execute(
-
-        """
-        SELECT
-
-            indicado,
-
-            status,
-
-            data
-
-        FROM indicacoes
-
-        WHERE indicador=?
-
-        ORDER BY id DESC
-
-        """,
-
-        (user_id,)
-
-    )
-
-
-    return cursor.fetchall()
+    return dados
 
 
 
 # ==========================================
-# RANKING DE INDICAÇÕES
+# RANKING
 # ==========================================
 
 def ranking_indicacoes():
@@ -858,74 +818,7 @@ def ranking_indicacoes():
 
 
 # ==========================================
-# VERIFICAR FRAUDE DE INDICAÇÃO
-# ==========================================
-
-def verificar_fraude(indicador, indicado):
-
-
-    # AUTO INDICAÇÃO
-
-    if indicador == indicado:
-
-
-        adicionar_log(
-
-            indicado,
-
-            "FRAUDE",
-
-            "Tentativa de auto indicação."
-
-        )
-
-
-        return True
-
-
-
-    # DUPLICIDADE
-
-    cursor.execute(
-
-        """
-        SELECT id
-
-        FROM indicacoes
-
-        WHERE indicado=?
-
-        """,
-
-        (indicado,)
-
-    )
-
-
-    existe = cursor.fetchone()
-
-
-
-    if existe:
-
-
-        adicionar_log(
-
-            indicado,
-
-            "FRAUDE",
-
-            "Usuário já possui indicador."
-
-        )
-
-
-        return True
-
-
-
-    return False# ==========================================
-# HANDLERS DE INDICAÇÃO
+# CONTINUAR REGISTRAR INDICAÇÕES
 # ==========================================
 
 def registrar_indicacoes(bot):
@@ -940,7 +833,9 @@ def registrar_indicacoes(bot):
     )
     def meu_link(message):
 
+
         user_id = message.from_user.id
+
 
 
         link = gerar_link_indicacao(
@@ -952,35 +847,21 @@ def registrar_indicacoes(bot):
         )
 
 
+
         bot.send_message(
 
             message.chat.id,
 
             f"""
-🎁 <b>SEU LINK DE INDICAÇÃO</b>
+🔗 <b>SEU LINK DE CONVITE</b>
 
 
-Compartilhe com seus amigos:
-
-🔗
-
-<code>{link}</code>
+{link}
 
 
-💰 Você ganha:
-
-<b>R$ {VALOR_INDICACAO:.2f}</b>
+💰 Ganhe R$ {VALOR_INDICACAO:.2f}
 
 por cada indicação válida.
-
-
-A indicação precisa:
-
-✅ Entrar pelo seu link
-
-✅ Entrar no grupo
-
-✅ Cadastrar o Pix
 """,
 
             parse_mode="HTML"
@@ -990,15 +871,17 @@ A indicação precisa:
 
 
     # ======================================
-    # MEUS INDICADOS
+    # INDICADOS
     # ======================================
 
     @bot.message_handler(
         func=lambda m: m.text == "👥 Indicados"
     )
-    def meus_indicados(message):
+    def indicados(message):
+
 
         user_id = message.from_user.id
+
 
 
         dados = estatisticas_indicacao(
@@ -1008,7 +891,12 @@ A indicação precisa:
         )
 
 
-        texto = f"""
+
+        bot.send_message(
+
+            message.chat.id,
+
+            f"""
 👥 <b>SUAS INDICAÇÕES</b>
 
 
@@ -1025,19 +913,7 @@ A indicação precisa:
 ✅ Aprovadas:
 
 {dados['APROVADA']}
-
-
-💰 Ganhos:
-
-R$ {(dados['APROVADA'] * VALOR_INDICACAO):.2f}
-"""
-
-
-        bot.send_message(
-
-            message.chat.id,
-
-            texto,
+""",
 
             parse_mode="HTML"
 
@@ -1058,21 +934,26 @@ R$ {(dados['APROVADA'] * VALOR_INDICACAO):.2f}
         lista = ranking_indicacoes()
 
 
+
         texto = """
+
 🏆 <b>RANKING DE INDICADORES</b>
 
 
 """
 
 
+
         posicao = 1
+
 
 
         for usuario in lista:
 
 
             texto += f"""
-{posicao}º - {usuario[0]}
+
+{posicao}º {usuario[0]}
 
 👥 Indicados:
 {usuario[1]}
@@ -1090,7 +971,8 @@ R$ {usuario[2]:.2f}
 
         if posicao == 1:
 
-            texto += "Nenhum usuário encontrado."
+
+            texto += "Nenhum indicador encontrado."
 
 
 
