@@ -9,7 +9,7 @@
 # TOKEN DO BOT
 # =========================================
 
-TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg
+TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg"
 "
 
 # =========================================
