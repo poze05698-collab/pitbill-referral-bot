@@ -1,8 +1,8 @@
 """
-=========================================
- PITBULL REWARDS PLATFORM V2
- Database V2.1
-=========================================
+==================================================
+ PITBULL REWARDS PLATFORM V3
+ Database Oficial
+==================================================
 """
 
 import sqlite3
@@ -10,110 +10,399 @@ from datetime import datetime
 
 from config import DATABASE
 
-# =====================================================
+# ==================================================
 # CONEXÃO
-# =====================================================
+# ==================================================
 
 conn = sqlite3.connect(
-    DATABASE,
-    check_same_thread=False,
-    timeout=30
-)
 
-# Ativar Foreign Keys
-conn.execute("PRAGMA foreign_keys = ON")
+    DATABASE,
+
+    check_same_thread=False
+
+)
 
 conn.row_factory = sqlite3.Row
 
 cursor = conn.cursor()
 
-# =====================================================
+# ==================================================
 # DATA/HORA
-# =====================================================
+# ==================================================
 
 def agora():
-    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-# =====================================================
+    return datetime.now().strftime(
+
+        "%d/%m/%Y %H:%M:%S"
+
+    )
+
+# ==================================================
 # SYSTEM
-# =====================================================
+# ==================================================
 
 cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS system(
 
     id INTEGER PRIMARY KEY,
 
-    bot_version TEXT NOT NULL,
+    plataforma TEXT,
 
-    database_version TEXT NOT NULL,
+    versao TEXT,
+
+    database_versao TEXT,
+
+    owner_id INTEGER,
 
     maintenance INTEGER DEFAULT 0,
 
     emergency INTEGER DEFAULT 0,
 
-    last_update TEXT,
+    created_at TEXT,
 
-    created_at TEXT
+    updated_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# CONFIGURAÇÕES
-# =====================================================
+# ==================================================
+# MÓDULOS
+# ==================================================
 
 cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS modulos(
+
+    chave TEXT PRIMARY KEY,
+
+    nome TEXT,
+
+    descricao TEXT,
+
+    ativo INTEGER DEFAULT 1,
+
+    editavel INTEGER DEFAULT 1,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# CONFIGURAÇÕES
+# ==================================================
+
+cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS configuracoes(
 
     chave TEXT PRIMARY KEY,
 
-    valor TEXT NOT NULL
+    valor TEXT,
+
+    descricao TEXT,
+
+    categoria TEXT,
+
+    editavel INTEGER DEFAULT 1,
+
+    updated_at TEXT
 
 )
-""")
 
-# =====================================================
-# ADMINS
-# =====================================================
+""")# ==================================================
+# CONFIGURAÇÕES PADRÃO
+# ==================================================
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS admins(
+CONFIG_PADRAO = {
 
-    id INTEGER PRIMARY KEY,
+    # -------------------------------
+    # GERAL
+    # -------------------------------
 
-    cargo TEXT NOT NULL,
+    "nome_plataforma": "PITBULL REWARDS PLATFORM",
 
-    ativo INTEGER DEFAULT 1,
+    "versao": "3.0",
 
-    criado_por INTEGER,
+    "idioma": "pt-BR",
 
-    created_at TEXT
+    "fuso_horario": "America/Sao_Paulo",
 
-)
-""")
+    "manutencao": "0",
 
-# =====================================================
+    "emergencia": "0",
+
+    # -------------------------------
+    # GRUPO
+    # -------------------------------
+
+    "grupo_obrigatorio": "1",
+
+    "grupo_id": "",
+
+    "grupo_nome": "",
+
+    "grupo_link": "",
+
+    "aprovacao_manual": "1",
+
+    # -------------------------------
+    # CANAL
+    # -------------------------------
+
+    "canal_obrigatorio": "0",
+
+    "canal_id": "",
+
+    "canal_nome": "",
+
+    "canal_link": "",
+
+    # -------------------------------
+    # INDICAÇÕES
+    # -------------------------------
+
+    "valor_indicacao": "1.00",
+
+    "limite_indicacoes_dia": "100",
+
+    "tempo_minimo_grupo": "0",
+
+    "anti_fake": "1",
+
+    # -------------------------------
+    # SAQUES
+    # -------------------------------
+
+    "saque_ativo": "1",
+
+    "valor_minimo_saque": "20.00",
+
+    "valor_maximo_saque": "5000.00",
+
+    "saque_manual": "1",
+
+    "taxa_saque": "0",
+
+    # -------------------------------
+    # PIX
+    # -------------------------------
+
+    "pix_obrigatorio": "1",
+
+    # -------------------------------
+    # ROLETA
+    # -------------------------------
+
+    "roleta_ativa": "1",
+
+    "roleta_giros_dia": "1",
+
+    # -------------------------------
+    # RASPADINHA
+    # -------------------------------
+
+    "raspadinha_ativa": "1",
+
+    "raspadinha_dia": "1",
+
+    # -------------------------------
+    # BONUS
+    # -------------------------------
+
+    "bonus_diario": "1",
+
+    "bonus_streak": "1",
+
+    # -------------------------------
+    # MISSÕES
+    # -------------------------------
+
+    "missoes_ativas": "1",
+
+    # -------------------------------
+    # RANKING
+    # -------------------------------
+
+    "ranking_ativo": "1",
+
+    # -------------------------------
+    # EVENTOS
+    # -------------------------------
+
+    "eventos_ativos": "1",
+
+    # -------------------------------
+    # LOJA
+    # -------------------------------
+
+    "loja_ativa": "1",
+
+    # -------------------------------
+    # CUPONS
+    # -------------------------------
+
+    "cupons_ativos": "1",
+
+    # -------------------------------
+    # BAÚS
+    # -------------------------------
+
+    "baus_ativos": "1",
+
+    # -------------------------------
+    # JACKPOT
+    # -------------------------------
+
+    "jackpot_ativo": "1",
+
+    # -------------------------------
+    # TICKETS
+    # -------------------------------
+
+    "tickets_ativos": "1",
+
+    # -------------------------------
+    # NOTIFICAÇÕES
+    # -------------------------------
+
+    "notificacoes": "1",
+
+    # -------------------------------
+    # PREMIUM
+    # -------------------------------
+
+    "premium_ativo": "0",
+
+    "premium_valor": "29.90",
+
+    "premium_dias": "30",
+
+    "premium_multiplicador": "2",
+
+    "premium_bonus": "2",
+
+    "premium_roleta": "2",
+
+    "premium_raspadinha": "2",
+
+    "premium_prioridade": "1",
+
+    # -------------------------------
+    # VIP
+    # -------------------------------
+
+    "vip_ativo": "1",
+
+    # -------------------------------
+    # BROADCAST
+    # -------------------------------
+
+    "broadcast_ativo": "1",
+
+    # -------------------------------
+    # BACKUP
+    # -------------------------------
+
+    "backup_automatico": "1",
+
+    # -------------------------------
+    # LOGS
+    # -------------------------------
+
+    "logs_admin": "1",
+
+    "logs_financeiro": "1"
+
+}
+
+# ==================================================
+# INSERIR CONFIGURAÇÕES
+# ==================================================
+
+for chave, valor in CONFIG_PADRAO.items():
+
+    cursor.execute("""
+
+        INSERT OR IGNORE INTO configuracoes(
+
+            chave,
+
+            valor,
+
+            descricao,
+
+            categoria,
+
+            updated_at
+
+        )
+
+        VALUES(
+
+            ?,?,?,?,?
+
+        )
+
+    """, (
+
+        chave,
+
+        valor,
+
+        "",
+
+        "GERAL",
+
+        agora()
+
+    ))
+
+conn.commit()# ==================================================
 # USUÁRIOS
-# =====================================================
+# ==================================================
 
 cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS usuarios(
 
     id INTEGER PRIMARY KEY,
 
     codigo TEXT UNIQUE,
 
-    nome TEXT NOT NULL,
+    nome TEXT,
 
     username TEXT,
 
-    idioma TEXT DEFAULT 'pt',
+    idioma TEXT DEFAULT 'pt-BR',
 
-    foto TEXT,
+    status TEXT DEFAULT 'ATIVO',
 
-    email TEXT,
+    bloqueado INTEGER DEFAULT 0,
 
-    telefone TEXT,
+    banido INTEGER DEFAULT 0,
+
+    grupo_verificado INTEGER DEFAULT 0,
+
+    canal_verificado INTEGER DEFAULT 0,
+
+    aprovado INTEGER DEFAULT 0,
+
+    convidado_por INTEGER,
+
+    indicados INTEGER DEFAULT 0,
+
+    indicacoes_pendentes INTEGER DEFAULT 0,
+
+    indicacoes_aprovadas INTEGER DEFAULT 0,
+
+    indicacoes_rejeitadas INTEGER DEFAULT 0,
 
     saldo REAL DEFAULT 0,
 
@@ -125,23 +414,23 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     total_sacado REAL DEFAULT 0,
 
+    total_indicacoes REAL DEFAULT 0,
+
+    pix TEXT,
+
     xp INTEGER DEFAULT 0,
 
     nivel INTEGER DEFAULT 1,
 
+    experiencia_total INTEGER DEFAULT 0,
+
     vip TEXT DEFAULT 'Bronze',
 
-    trust_score INTEGER DEFAULT 100,
+    premium INTEGER DEFAULT 0,
 
-    indicados INTEGER DEFAULT 0,
+    premium_expira TEXT,
 
-    indicacoes_pendentes INTEGER DEFAULT 0,
-
-    indicacoes_aprovadas INTEGER DEFAULT 0,
-
-    indicacoes_rejeitadas INTEGER DEFAULT 0,
-
-    convidado_por INTEGER,
+    premium_multiplicador REAL DEFAULT 1,
 
     streak INTEGER DEFAULT 0,
 
@@ -153,69 +442,253 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     ultimo_login TEXT,
 
-    ultima_atividade TEXT,
+    ultimo_ip TEXT,
 
-    status TEXT DEFAULT 'ATIVO',
+    ultimo_dispositivo TEXT,
 
-    is_admin INTEGER DEFAULT 0,
+    tickets_abertos INTEGER DEFAULT 0,
 
-    banido INTEGER DEFAULT 0,
+    notificacoes INTEGER DEFAULT 0,
 
-    motivo_ban TEXT,
+    inventario INTEGER DEFAULT 0,
+
+    baus INTEGER DEFAULT 0,
+
+    jackpot INTEGER DEFAULT 0,
+
+    criado_por_admin INTEGER DEFAULT 0,
 
     created_at TEXT,
 
     updated_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# INDICAÇÕES
-# =====================================================
+# ==================================================
+# ÍNDICES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS indicacoes(
+
+CREATE INDEX IF NOT EXISTS idx_usuario_codigo
+
+ON usuarios(codigo)
+
+""")
+
+cursor.execute("""
+
+CREATE INDEX IF NOT EXISTS idx_usuario_indicador
+
+ON usuarios(convidado_por)
+
+""")
+
+cursor.execute("""
+
+CREATE INDEX IF NOT EXISTS idx_usuario_status
+
+ON usuarios(status)
+
+""")
+
+conn.commit()# ==================================================
+# ADMINISTRADORES
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS admins(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    indicador INTEGER NOT NULL,
+    usuario_id INTEGER UNIQUE,
 
-    indicado INTEGER UNIQUE NOT NULL,
+    cargo TEXT,
 
-    valor REAL DEFAULT 0,
+    ativo INTEGER DEFAULT 1,
 
-    status TEXT DEFAULT 'PENDENTE',
+    criado_por INTEGER,
 
-    aprovado_por INTEGER,
-
-    motivo_rejeicao TEXT,
+    ultimo_login TEXT,
 
     created_at TEXT,
 
-    approved_at TEXT,
-
-    FOREIGN KEY(indicador) REFERENCES usuarios(id),
-
-    FOREIGN KEY(indicado) REFERENCES usuarios(id)
+    updated_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# CARTEIRA
-# =====================================================
+# ==================================================
+# PERMISSÕES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS wallet(
+
+CREATE TABLE IF NOT EXISTS permissoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER NOT NULL,
+    admin_id INTEGER,
+
+    permissao TEXT,
+
+    permitido INTEGER DEFAULT 1,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# LOGS ADMINISTRATIVOS
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS logs_admin(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    admin_id INTEGER,
+
+    acao TEXT,
+
+    categoria TEXT,
+
+    usuario_alvo INTEGER,
+
+    referencia TEXT,
+
+    detalhes TEXT,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# CARGOS PADRÃO
+# ==================================================
+
+CARGOS = {
+
+    "OWNER": [
+
+        "*"
+
+    ],
+
+    "ADMIN": [
+
+        "usuarios",
+
+        "saques",
+
+        "indicacoes",
+
+        "grupo",
+
+        "canal",
+
+        "tickets",
+
+        "eventos",
+
+        "premium",
+
+        "vip",
+
+        "broadcast",
+
+        "ranking",
+
+        "financeiro",
+
+        "configuracoes"
+
+    ],
+
+    "MODERADOR": [
+
+        "usuarios",
+
+        "grupo",
+
+        "tickets",
+
+        "blacklist"
+
+    ],
+
+    "SUPORTE": [
+
+        "tickets"
+
+    ],
+
+    "SISTEMA": [
+
+        "*"
+
+    ]
+
+}
+
+conn.commit()# ==================================================
+# CARTEIRA
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS carteira(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    saldo REAL DEFAULT 0,
+
+    saldo_pendente REAL DEFAULT 0,
+
+    saldo_bloqueado REAL DEFAULT 0,
+
+    total_recebido REAL DEFAULT 0,
+
+    total_sacado REAL DEFAULT 0,
+
+    total_bonus REAL DEFAULT 0,
+
+    total_indicacoes REAL DEFAULT 0,
+
+    total_jogos REAL DEFAULT 0,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# EXTRATO FINANCEIRO
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS extrato(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
 
     tipo TEXT,
 
-    origem TEXT,
+    categoria TEXT,
 
     valor REAL,
 
@@ -223,33 +696,29 @@ CREATE TABLE IF NOT EXISTS wallet(
 
     saldo_atual REAL,
 
-    status TEXT,
+    referencia TEXT,
 
     descricao TEXT,
 
-    observacao TEXT,
-
-    referencia TEXT,
-
     admin_id INTEGER,
 
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    created_at TEXT
 
 )
+
 """)
 
-# =====================================================
+# ==================================================
 # PIX
-# =====================================================
+# ==================================================
 
 cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS pix(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER UNIQUE,
+    usuario_id INTEGER UNIQUE,
 
     tipo TEXT,
 
@@ -261,35 +730,39 @@ CREATE TABLE IF NOT EXISTS pix(
 
     status TEXT DEFAULT 'ATIVO',
 
+    verificado INTEGER DEFAULT 0,
+
     created_at TEXT,
 
-    updated_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    updated_at TEXT
 
 )
+
 """)
 
-# =====================================================
+# ==================================================
 # SAQUES
-# =====================================================
+# ==================================================
 
 cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS saques(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER,
+    usuario_id INTEGER,
 
     valor REAL,
 
     taxa REAL DEFAULT 0,
 
-    pix TEXT,
+    valor_liquido REAL,
 
-    status TEXT DEFAULT 'PENDENTE',
+    chave_pix TEXT,
 
-    aprovado_por INTEGER,
+    status TEXT,
+
+    admin_id INTEGER,
 
     comprovante TEXT,
 
@@ -297,310 +770,375 @@ CREATE TABLE IF NOT EXISTS saques(
 
     created_at TEXT,
 
-    updated_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    updated_at TEXT
 
 )
-""")# =====================================================
-# HISTÓRICO
-# =====================================================
+
+""")
+
+# ==================================================
+# HISTÓRICO DE SAQUES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS historico(
+
+CREATE TABLE IF NOT EXISTS saque_logs(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER NOT NULL,
+    saque_id INTEGER,
 
-    categoria TEXT,
+    admin_id INTEGER,
 
-    titulo TEXT,
+    status TEXT,
 
-    descricao TEXT,
+    observacao TEXT,
 
-    referencia TEXT,
-
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    created_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# LOGS
-# =====================================================
+# ==================================================
+# FINANCEIRO GERAL
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS logs(
 
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    admin INTEGER,
-
-    tipo TEXT,
-
-    acao TEXT,
-
-    usuario INTEGER,
-
-    detalhes TEXT,
-
-    ip TEXT,
-
-    created_at TEXT,
-
-    FOREIGN KEY(admin) REFERENCES admins(id),
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
-
-)
-""")
-
-# =====================================================
-# NOTIFICAÇÕES
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS notificacoes(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER,
-
-    titulo TEXT,
-
-    mensagem TEXT,
-
-    lida INTEGER DEFAULT 0,
-
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
-
-)
-""")
-
-# =====================================================
-# TICKETS
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS tickets(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER,
-
-    categoria TEXT,
-
-    assunto TEXT,
-
-    status TEXT DEFAULT 'ABERTO',
-
-    prioridade TEXT DEFAULT 'NORMAL',
-
-    atendente INTEGER,
-
-    fechado_por INTEGER,
-
-    fechado_em TEXT,
-
-    created_at TEXT,
-
-    updated_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id),
-
-    FOREIGN KEY(atendente) REFERENCES admins(id)
-
-)
-""")
-
-# =====================================================
-# MENSAGENS DOS TICKETS
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS ticket_mensagens(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    ticket INTEGER,
-
-    remetente INTEGER,
-
-    tipo TEXT,
-
-    mensagem TEXT,
-
-    created_at TEXT,
-
-    FOREIGN KEY(ticket) REFERENCES tickets(id)
-
-)
-""")
-
-# =====================================================
-# BLACKLIST
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS blacklist(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER UNIQUE,
-
-    motivo TEXT,
-
-    admin INTEGER,
-
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id),
-
-    FOREIGN KEY(admin) REFERENCES admins(id)
-
-)
-""")
-
-# =====================================================
-# FINANCEIRO
-# =====================================================
-
-cursor.execute("""
 CREATE TABLE IF NOT EXISTS financeiro(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER,
-
     categoria TEXT,
-
-    origem TEXT,
 
     referencia TEXT,
 
+    usuario_id INTEGER,
+
     valor REAL,
 
-    saldo REAL,
+    observacao TEXT,
 
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    created_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# ESTATÍSTICAS
-# =====================================================
+# ==================================================
+# ÍNDICES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS estatisticas(
 
-    usuario INTEGER PRIMARY KEY,
+CREATE INDEX IF NOT EXISTS idx_carteira_usuario
 
-    logins INTEGER DEFAULT 0,
+ON carteira(usuario_id)
 
-    convites INTEGER DEFAULT 0,
-
-    saques INTEGER DEFAULT 0,
-
-    tickets INTEGER DEFAULT 0,
-
-    roletas INTEGER DEFAULT 0,
-
-    raspadinhas INTEGER DEFAULT 0,
-
-    missoes INTEGER DEFAULT 0,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
-
-)
 """)
 
-# =====================================================
-# AUDITORIA
-# =====================================================
+cursor.execute("""
+
+CREATE INDEX IF NOT EXISTS idx_extrato_usuario
+
+ON extrato(usuario_id)
+
+""")
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS auditoria(
+
+CREATE INDEX IF NOT EXISTS idx_saques_usuario
+
+ON saques(usuario_id)
+
+""")
+
+conn.commit()# ==================================================
+# INDICAÇÕES
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS indicacoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER,
+    indicador_id INTEGER,
 
-    modulo TEXT,
+    indicado_id INTEGER UNIQUE,
+
+    codigo_convite TEXT,
+
+    status TEXT DEFAULT 'PENDENTE',
+
+    recompensa REAL DEFAULT 0,
+
+    aprovado_por INTEGER,
+
+    motivo_rejeicao TEXT,
+
+    created_at TEXT,
+
+    approved_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# VALIDAÇÃO DE GRUPO
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS validacao_grupo(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER UNIQUE,
+
+    grupo_id TEXT,
+
+    entrou_grupo INTEGER DEFAULT 0,
+
+    confirmou INTEGER DEFAULT 0,
+
+    aprovado INTEGER DEFAULT 0,
+
+    aprovado_por INTEGER,
+
+    observacao TEXT,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# VALIDAÇÃO DE CANAL
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS validacao_canal(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER UNIQUE,
+
+    canal_id TEXT,
+
+    entrou_canal INTEGER DEFAULT 0,
+
+    confirmado INTEGER DEFAULT 0,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# ANTI FRAUDE
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS antifraude(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    ip TEXT,
+
+    dispositivo TEXT,
+
+    hash_dispositivo TEXT,
+
+    score INTEGER DEFAULT 0,
+
+    suspeito INTEGER DEFAULT 0,
+
+    motivo TEXT,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# BLACKLIST
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS blacklist(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER UNIQUE,
+
+    motivo TEXT,
+
+    admin_id INTEGER,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# HISTÓRICO DE INDICAÇÕES
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS historico_indicacoes(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    indicador_id INTEGER,
+
+    indicado_id INTEGER,
 
     acao TEXT,
 
-    detalhes TEXT,
+    descricao TEXT,
 
-    created_at TEXT,
+    admin_id INTEGER,
 
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    created_at TEXT
 
 )
-""")# =====================================================
-# VIP
-# =====================================================
+
+""")
+
+# ==================================================
+# ÍNDICES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS vip(
+
+CREATE INDEX IF NOT EXISTS idx_indicador
+
+ON indicacoes(indicador_id)
+
+""")
+
+cursor.execute("""
+
+CREATE INDEX IF NOT EXISTS idx_indicado
+
+ON indicacoes(indicado_id)
+
+""")
+
+cursor.execute("""
+
+CREATE INDEX IF NOT EXISTS idx_validacao_grupo
+
+ON validacao_grupo(usuario_id)
+
+""")
+
+conn.commit()# ==================================================
+# ROLETA
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS roleta(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    nome TEXT UNIQUE,
+    usuario_id INTEGER,
 
-    minimo_indicados INTEGER DEFAULT 0,
+    premio TEXT,
 
-    bonus_indicacao REAL DEFAULT 1.00,
+    valor REAL DEFAULT 0,
 
-    bonus_bonus_diario REAL DEFAULT 0,
+    xp INTEGER DEFAULT 0,
 
-    giros INTEGER DEFAULT 0,
-
-    raspadinhas INTEGER DEFAULT 0,
-
-    prioridade_saque INTEGER DEFAULT 0,
+    giros_bonus INTEGER DEFAULT 0,
 
     created_at TEXT
+
 )
+
 """)
 
-# =====================================================
-# RANKING
-# =====================================================
+# ==================================================
+# RASPADINHA
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS ranking(
 
-    usuario INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS raspadinha(
 
-    pontos INTEGER DEFAULT 0,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    posicao INTEGER DEFAULT 0,
+    usuario_id INTEGER,
 
-    updated_at TEXT,
+    premio TEXT,
 
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    valor REAL DEFAULT 0,
+
+    xp INTEGER DEFAULT 0,
+
+    raspadinhas_bonus INTEGER DEFAULT 0,
+
+    created_at TEXT
 
 )
+
 """)
 
-# =====================================================
+# ==================================================
+# BONUS DIÁRIO
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS bonus_diario(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    dia INTEGER,
+
+    recompensa REAL,
+
+    xp INTEGER,
+
+    recebido INTEGER DEFAULT 0,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
 # MISSÕES
-# =====================================================
+# ==================================================
 
 cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS missoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    titulo TEXT,
+    nome TEXT,
 
     descricao TEXT,
 
@@ -612,23 +1150,27 @@ CREATE TABLE IF NOT EXISTS missoes(
 
     xp INTEGER,
 
-    ativa INTEGER DEFAULT 1
+    ativo INTEGER DEFAULT 1,
+
+    created_at TEXT
 
 )
+
 """)
 
-# =====================================================
+# ==================================================
 # MISSÕES DOS USUÁRIOS
-# =====================================================
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS missoes_usuario(
+
+CREATE TABLE IF NOT EXISTS usuario_missoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario INTEGER,
+    usuario_id INTEGER,
 
-    missao INTEGER,
+    missao_id INTEGER,
 
     progresso INTEGER DEFAULT 0,
 
@@ -638,18 +1180,310 @@ CREATE TABLE IF NOT EXISTS missoes_usuario(
 
     created_at TEXT,
 
-    FOREIGN KEY(usuario) REFERENCES usuarios(id),
-
-    FOREIGN KEY(missao) REFERENCES missoes(id)
+    updated_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# EVENTOS
-# =====================================================
+# ==================================================
+# CONQUISTAS
+# ==================================================
 
 cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS conquistas(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    nome TEXT,
+
+    descricao TEXT,
+
+    recompensa REAL,
+
+    xp INTEGER,
+
+    ativo INTEGER DEFAULT 1
+
+)
+
+""")
+
+# ==================================================
+# CONQUISTAS DOS USUÁRIOS
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS usuario_conquistas(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    conquista_id INTEGER,
+
+    recebido INTEGER DEFAULT 0,
+
+    created_at TEXT
+
+)
+
+""")
+
+conn.commit()# ==================================================
+# PLANOS PREMIUM
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS premium_planos(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    nome TEXT,
+
+    descricao TEXT,
+
+    valor REAL,
+
+    dias INTEGER,
+
+    multiplicador REAL DEFAULT 1,
+
+    bonus_diario INTEGER DEFAULT 1,
+
+    roletas INTEGER DEFAULT 1,
+
+    raspadinhas INTEGER DEFAULT 1,
+
+    prioridade_ticket INTEGER DEFAULT 0,
+
+    ativo INTEGER DEFAULT 1,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# ASSINATURAS PREMIUM
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS premium_assinaturas(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    plano_id INTEGER,
+
+    status TEXT,
+
+    valor_pago REAL,
+
+    inicio TEXT,
+
+    expira TEXT,
+
+    aprovado_por INTEGER,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# VIP
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS vip_planos(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    nome TEXT,
+
+    xp_minimo INTEGER,
+
+    multiplicador REAL,
+
+    beneficios TEXT,
+
+    ativo INTEGER DEFAULT 1
+
+)
+
+""")
+
+# ==================================================
+# LOJA
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS loja(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    nome TEXT,
+
+    categoria TEXT,
+
+    descricao TEXT,
+
+    valor REAL,
+
+    tipo_recompensa TEXT,
+
+    recompensa TEXT,
+
+    ativo INTEGER DEFAULT 1,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# INVENTÁRIO
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS inventario(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    item TEXT,
+
+    quantidade INTEGER DEFAULT 0,
+
+    created_at TEXT,
+
+    updated_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# CUPONS
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS cupons(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    codigo TEXT UNIQUE,
+
+    descricao TEXT,
+
+    recompensa_tipo TEXT,
+
+    recompensa_valor REAL,
+
+    limite_uso INTEGER,
+
+    usados INTEGER DEFAULT 0,
+
+    ativo INTEGER DEFAULT 1,
+
+    validade TEXT,
+
+    criado_por INTEGER,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# CUPONS RESGATADOS
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS usuario_cupons(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    cupom_id INTEGER,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# BAÚS
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS baus(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    tipo TEXT,
+
+    aberto INTEGER DEFAULT 0,
+
+    premio TEXT,
+
+    created_at TEXT
+
+)
+
+""")
+
+# ==================================================
+# JACKPOT
+# ==================================================
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS jackpot(
+
+    id INTEGER PRIMARY KEY,
+
+    valor REAL,
+
+    ultimo_ganhador INTEGER,
+
+    ultima_premiacao TEXT
+
+)
+
+""")
+
+# ==================================================
+# EVENTOS
+# ==================================================
+
+cursor.execute("""
+
 CREATE TABLE IF NOT EXISTS eventos(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -658,455 +1492,473 @@ CREATE TABLE IF NOT EXISTS eventos(
 
     descricao TEXT,
 
-    recompensa REAL,
+    bonus REAL,
 
-    xp INTEGER,
+    multiplicador REAL,
 
     inicio TEXT,
 
     fim TEXT,
 
-    ativo INTEGER DEFAULT 0
-
-)
-""")
-
-# =====================================================
-# LOJA
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS loja(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    nome TEXT,
-
-    descricao TEXT,
-
-    tipo TEXT,
-
-    preco REAL,
-
-    quantidade INTEGER DEFAULT 0,
-
     ativo INTEGER DEFAULT 1
 
 )
+
 """)
 
-# =====================================================
-# CUPÕES
-# =====================================================
+conn.commit()# ==================================================
+# TICKETS
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS cupons(
+
+CREATE TABLE IF NOT EXISTS tickets(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    codigo TEXT UNIQUE,
+    usuario_id INTEGER,
 
-    recompensa REAL,
+    protocolo TEXT UNIQUE,
 
-    xp INTEGER DEFAULT 0,
+    categoria TEXT,
 
-    limite INTEGER,
+    assunto TEXT,
 
-    utilizados INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'ABERTO',
 
-    ativo INTEGER DEFAULT 1
+    prioridade TEXT DEFAULT 'NORMAL',
 
-)
-""")
-
-# =====================================================
-# INVENTÁRIO
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS inventario(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER,
-
-    item TEXT,
-
-    quantidade INTEGER DEFAULT 0,
+    responsavel INTEGER,
 
     created_at TEXT,
 
     updated_at TEXT,
 
-    FOREIGN KEY(usuario) REFERENCES usuarios(id)
+    fechado_em TEXT
 
 )
+
 """)
 
-# =====================================================
-# CONQUISTAS
-# =====================================================
+# ==================================================
+# MENSAGENS DOS TICKETS
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS conquistas(
+
+CREATE TABLE IF NOT EXISTS ticket_mensagens(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    nome TEXT UNIQUE,
+    ticket_id INTEGER,
 
-    descricao TEXT,
+    autor_id INTEGER,
 
-    recompensa REAL,
+    administrador INTEGER DEFAULT 0,
 
-    xp INTEGER,
-
-    ativa INTEGER DEFAULT 1
-
-)
-""")
-
-# =====================================================
-# CONQUISTAS DOS USUÁRIOS
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS usuario_conquistas(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario INTEGER,
-
-    conquista INTEGER,
-
-    created_at TEXT,
-
-    FOREIGN KEY(usuario) REFERENCES usuarios(id),
-
-    FOREIGN KEY(conquista) REFERENCES conquistas(id)
-
-)
-""")
-
-# =====================================================
-# GRUPOS
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS grupos(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    nome TEXT,
-
-    telegram_id TEXT,
-
-    link TEXT,
-
-    principal INTEGER DEFAULT 0,
-
-    ativo INTEGER DEFAULT 1,
+    mensagem TEXT,
 
     created_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# CANAIS
-# =====================================================
+# ==================================================
+# NOTIFICAÇÕES
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS canais(
+
+CREATE TABLE IF NOT EXISTS notificacoes(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    nome TEXT,
-
-    telegram_id TEXT,
-
-    link TEXT,
-
-    principal INTEGER DEFAULT 0,
-
-    ativo INTEGER DEFAULT 1,
-
-    created_at TEXT
-
-)
-""")
-
-# =====================================================
-# ANÚNCIOS
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS anuncios(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER,
 
     titulo TEXT,
 
     mensagem TEXT,
 
-    ativo INTEGER DEFAULT 1,
+    tipo TEXT,
+
+    lida INTEGER DEFAULT 0,
 
     created_at TEXT
 
 )
+
 """)
 
-# =====================================================
-# VERSÕES
-# =====================================================
+# ==================================================
+# BROADCAST
+# ==================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS versoes(
+
+CREATE TABLE IF NOT EXISTS broadcasts(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    versao TEXT,
+    admin_id INTEGER,
 
-    descricao TEXT,
+    titulo TEXT,
 
-    data TEXT
+    mensagem TEXT,
+
+    total_enviado INTEGER DEFAULT 0,
+
+    created_at TEXT
 
 )
-""")# =====================================================
-# ÍNDICES
-# =====================================================
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario_id
-ON usuarios(id)
 """)
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario_username
-ON usuarios(username)
-""")
+# ==================================================
+# ESTATÍSTICAS
+# ==================================================
 
 cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_indicador
-ON indicacoes(indicador)
+
+CREATE TABLE IF NOT EXISTS estatisticas(
+
+    chave TEXT PRIMARY KEY,
+
+    valor TEXT,
+
+    updated_at TEXT
+
+)
+
 """)
+
+# ==================================================
+# BACKUPS
+# ==================================================
 
 cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_indicado
-ON indicacoes(indicado)
+
+CREATE TABLE IF NOT EXISTS backups(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    arquivo TEXT,
+
+    tamanho TEXT,
+
+    admin_id INTEGER,
+
+    created_at TEXT
+
+)
+
 """)
+
+# ==================================================
+# AUDITORIA GERAL
+# ==================================================
 
 cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_wallet_usuario
-ON wallet(usuario)
+
+CREATE TABLE IF NOT EXISTS auditoria(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario_id INTEGER,
+
+    modulo TEXT,
+
+    acao TEXT,
+
+    referencia TEXT,
+
+    detalhes TEXT,
+
+    ip TEXT,
+
+    created_at TEXT
+
+)
+
 """)
+
+# ==================================================
+# LOG DO SISTEMA
+# ==================================================
 
 cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_pix_usuario
-ON pix(usuario)
+
+CREATE TABLE IF NOT EXISTS sistema_logs(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    nivel TEXT,
+
+    modulo TEXT,
+
+    mensagem TEXT,
+
+    created_at TEXT
+
+)
+
 """)
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_saque_usuario
-ON saques(usuario)
-""")
+conn.commit()# ==================================================
+# MÓDULOS PADRÃO
+# ==================================================
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_ticket_usuario
-ON tickets(usuario)
-""")
+MODULOS_PADRAO = [
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_historico_usuario
-ON historico(usuario)
-""")
+    ("grupo", "Grupo Obrigatório", "Validação de grupo", 1),
+    ("canal", "Canal Obrigatório", "Validação de canal", 0),
+    ("afiliados", "Afiliados", "Sistema de indicações", 1),
+    ("carteira", "Carteira", "Sistema financeiro", 1),
+    ("pix", "PIX", "Cadastro de PIX", 1),
+    ("saques", "Saques", "Solicitação de saque", 1),
+    ("roleta", "Roleta", "Roleta diária", 1),
+    ("raspadinha", "Raspadinha", "Raspadinha diária", 1),
+    ("bonus", "Bônus Diário", "Bônus diário", 1),
+    ("missoes", "Missões", "Sistema de missões", 1),
+    ("ranking", "Ranking", "Ranking geral", 1),
+    ("vip", "VIP", "Sistema VIP", 1),
+    ("premium", "Premium", "Assinaturas Premium", 0),
+    ("loja", "Loja", "Loja virtual", 1),
+    ("tickets", "Tickets", "Atendimento", 1),
+    ("eventos", "Eventos", "Eventos especiais", 1),
+    ("cupons", "Cupons", "Cupons promocionais", 1),
+    ("baus", "Baús", "Baús de recompensa", 1),
+    ("jackpot", "Jackpot", "Prêmio acumulado", 1),
+    ("notificacoes", "Notificações", "Mensagens internas", 1),
+    ("broadcast", "Broadcast", "Mensagens em massa", 1),
+    ("backup", "Backup", "Sistema de backup", 1)
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_notificacao_usuario
-ON notificacoes(usuario)
-""")
+]
 
-# =====================================================
-# CONFIGURAÇÕES PADRÃO
-# =====================================================
-
-config_padrao = {
-
-    "grupo_obrigatorio": "1",
-
-    "canal_obrigatorio": "0",
-
-    "valor_indicacao": "1.00",
-
-    "valor_minimo_saque": "20.00",
-
-    "valor_maximo_saque": "1000.00",
-
-    "ticket_ativo": "1",
-
-    "roleta_ativa": "1",
-
-    "raspadinha_ativa": "1",
-
-    "bonus_diario": "1",
-
-    "evento_ativo": "0",
-
-    "modo_manutencao": "0",
-
-    "modo_emergencia": "0",
-
-    "cadastro_liberado": "1",
-
-    "saque_liberado": "1",
-
-    "tickets_liberados": "1"
-
-}
-
-for chave, valor in config_padrao.items():
+for chave, nome, descricao, ativo in MODULOS_PADRAO:
 
     cursor.execute("""
 
-    INSERT OR IGNORE INTO configuracoes
+    INSERT OR IGNORE INTO modulos(
 
-    (chave,valor)
+        chave,
 
-    VALUES(?,?)
+        nome,
 
-    """,(chave,valor))
+        descricao,
 
-# =====================================================
-# SYSTEM PADRÃO
-# =====================================================
+        ativo,
+
+        created_at,
+
+        updated_at
+
+    )
+
+    VALUES(?,?,?,?,?,?)
+
+    """, (
+
+        chave,
+
+        nome,
+
+        descricao,
+
+        ativo,
+
+        agora(),
+
+        agora()
+
+    ))
+
+# ==================================================
+# PLANO PREMIUM PADRÃO
+# ==================================================
 
 cursor.execute("""
 
-INSERT OR IGNORE INTO system(
+INSERT OR IGNORE INTO premium_planos(
 
-id,
+    id,
 
-bot_version,
+    nome,
 
-database_version,
+    descricao,
 
-maintenance,
+    valor,
 
-emergency,
+    dias,
 
-last_update,
+    multiplicador,
 
-created_at
+    bonus_diario,
+
+    roletas,
+
+    raspadinhas,
+
+    prioridade_ticket,
+
+    ativo,
+
+    created_at,
+
+    updated_at
 
 )
 
 VALUES(
 
-1,
+    1,
 
-'2.1',
+    'Premium',
 
-'2.1',
+    'Plano Premium Oficial',
 
-0,
+    29.90,
 
-0,
+    30,
 
-?,
+    2,
 
-?
+    2,
+
+    2,
+
+    2,
+
+    1,
+
+    1,
+
+    ?,
+
+    ?
 
 )
 
-""",(agora(),agora()))
+""", (
 
-# =====================================================
-# VIP PADRÃO
-# =====================================================
-
-vip_padrao=[
-
-("Bronze",0,1.00,0,1,1,0),
-
-("Prata",25,1.20,5,2,2,0),
-
-("Ouro",75,1.50,10,3,3,1),
-
-("Diamante",150,2.00,20,4,4,1),
-
-("Lendário",500,3.00,30,5,5,1)
-
-]
-
-for vip in vip_padrao:
-
-    cursor.execute("""
-
-    INSERT OR IGNORE INTO vip(
-
-    nome,
-
-    minimo_indicados,
-
-    bonus_indicacao,
-
-    bonus_bonus_diario,
-
-    giros,
-
-    raspadinhas,
-
-    prioridade_saque,
-
-    created_at
-
-    )
-
-    VALUES(?,?,?,?,?,?,?,?)
-
-    """,(
-
-    vip[0],
-
-    vip[1],
-
-    vip[2],
-
-    vip[3],
-
-    vip[4],
-
-    vip[5],
-
-    vip[6],
+    agora(),
 
     agora()
 
+))
+
+# ==================================================
+# VIP PADRÃO
+# ==================================================
+
+VIPS = [
+
+    (1, "Bronze", 0, 1),
+    (2, "Prata", 500, 1.10),
+    (3, "Ouro", 1500, 1.20),
+    (4, "Diamante", 5000, 1.40)
+
+]
+
+for id_vip, nome, xp, mult in VIPS:
+
+    cursor.execute("""
+
+    INSERT OR IGNORE INTO vip_planos(
+
+        id,
+
+        nome,
+
+        xp_minimo,
+
+        multiplicador,
+
+        beneficios,
+
+        ativo
+
+    )
+
+    VALUES(?,?,?,?,?,?)
+
+    """, (
+
+        id_vip,
+
+        nome,
+
+        xp,
+
+        mult,
+
+        "",
+
+        1
+
     ))
 
-# =====================================================
-# FUNÇÕES AUXILIARES
-# =====================================================
+# ==================================================
+# SYSTEM
+# ==================================================
 
-def execute(sql, params=()):
+cursor.execute("""
 
-    cursor.execute(sql, params)
+INSERT OR IGNORE INTO system(
 
-    conn.commit()
+    id,
 
+    plataforma,
 
-def fetchone(sql, params=()):
+    versao,
 
-    cursor.execute(sql, params)
+    database_versao,
 
-    return cursor.fetchone()
+    owner_id,
 
+    maintenance,
 
-def fetchall(sql, params=()):
+    emergency,
 
-    cursor.execute(sql, params)
+    created_at,
 
-    return cursor.fetchall()
+    updated_at
 
+)
+
+VALUES(
+
+    1,
+
+    'PITBULL REWARDS PLATFORM',
+
+    '3.0',
+
+    '3.0',
+
+    0,
+
+    0,
+
+    0,
+
+    ?,
+
+    ?
+
+)
+
+""", (
+
+    agora(),
+
+    agora()
+
+))
+
+# ==================================================
+# FUNÇÕES
+# ==================================================
 
 def get_config(chave):
 
@@ -1118,7 +1970,7 @@ def get_config(chave):
 
     )
 
-    resultado=cursor.fetchone()
+    resultado = cursor.fetchone()
 
     if resultado:
 
@@ -1129,25 +1981,94 @@ def get_config(chave):
 
 def set_config(chave, valor):
 
-    cursor.execute("""
+    cursor.execute(
 
-    UPDATE configuracoes
+        """
 
-    SET valor=?
+        UPDATE configuracoes
 
-    WHERE chave=?
+        SET valor=?,
 
-    """,(str(valor),chave))
+            updated_at=?
+
+        WHERE chave=?
+
+        """,
+
+        (
+
+            str(valor),
+
+            agora(),
+
+            chave
+
+        )
+
+    )
 
     conn.commit()
 
-# =====================================================
+
+def modulo_ativo(chave):
+
+    cursor.execute(
+
+        "SELECT ativo FROM modulos WHERE chave=?",
+
+        (chave,)
+
+    )
+
+    resultado = cursor.fetchone()
+
+    if resultado:
+
+        return resultado["ativo"] == 1
+
+    return False
+
+
+def alterar_modulo(chave, ativo):
+
+    cursor.execute(
+
+        """
+
+        UPDATE modulos
+
+        SET ativo=?,
+
+            updated_at=?
+
+        WHERE chave=?
+
+        """,
+
+        (
+
+            ativo,
+
+            agora(),
+
+            chave
+
+        )
+
+    )
+
+    conn.commit()
+
+# ==================================================
 # FINALIZAÇÃO
-# =====================================================
+# ==================================================
 
 conn.commit()
 
-print("="*50)
-print(" PITBULL REWARDS PLATFORM V2.1 ")
-print(" Database carregado com sucesso.")
-print("="*50)
+print("=" * 60)
+
+print("🐶 PITBULL REWARDS PLATFORM V3")
+
+print("✅ Database carregado com sucesso.")
+
+print("=" * 60)
