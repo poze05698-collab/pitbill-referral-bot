@@ -9,20 +9,21 @@
 # TOKEN DO BOT
 # =========================================
 
-TOKEN = "COLOQUE_SEU_TOKEN_AQUI"
+TOKEN = "8771309444:AAE522egqaCOPGaAZUqDCB-6zY6uK-y1lhg
+"
 
 # =========================================
 # ADMIN
 # =========================================
 
-ADMIN_ID = 123456789
+ADMIN_ID = 6172813641
 
 # =========================================
 # GRUPO
 # =========================================
 
-GRUPO_ID = -1000000000000
-GRUPO_LINK = "https://t.me/seugrupo"
+GRUPO_ID = -1003355182545
+GRUPO_LINK = "https://t.me/pitbullslotsofc"
 
 # =========================================
 # SISTEMA
@@ -30,7 +31,7 @@ GRUPO_LINK = "https://t.me/seugrupo"
 
 NOME_BOT = "Pitbull Referral Bot"
 
-SUPORTE = "@SeuSuporte"
+SUPORTE = "@PitbullSlots011"
 
 # =========================================
 # AFILIADOS
