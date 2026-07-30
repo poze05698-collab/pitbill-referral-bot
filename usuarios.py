@@ -56,7 +56,10 @@ def gerar_codigo():
 
         if cursor.fetchone() is None:
 
-            return codigo# ==========================================
+            return codigo
+
+
+# ==========================================
 # VERIFICAR SE O USUÁRIO EXISTE
 # ==========================================
 
