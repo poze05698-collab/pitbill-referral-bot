@@ -1,13 +1,16 @@
 """
 =========================================
- PITBULL REWARDS PLATFORM V2
+ PITBULL REWARDS PLATFORM V3
  bot.py
 =========================================
 """
 
 import telebot
 
-from config import TOKEN, ADMIN_ID
+from config import (
+    TOKEN,
+    ADMIN_ID
+)
 
 from teclado import (
     menu_principal,
@@ -19,7 +22,9 @@ from usuarios import (
     cadastrar_usuario,
     atualizar_usuario,
     atualizar_login,
-    buscar_usuario
+    buscar_usuario,
+    perfil,
+    saldo
 )
 
 # ==========================================
@@ -27,29 +32,54 @@ from usuarios import (
 # ==========================================
 
 bot = telebot.TeleBot(
+
     TOKEN,
+
     parse_mode="HTML"
-)# ==========================================
-# VERIFICAR CADASTRO
+
+)
+
+# ==========================================
+# DATA DO USUÁRIO
+# ==========================================
+
+def dados_usuario(message):
+
+    return {
+
+        "id": message.from_user.id,
+
+        "nome": message.from_user.first_name or "",
+
+        "username": message.from_user.username or ""
+
+    }
+
+# ==========================================
+# ADMIN
+# ==========================================
+
+def is_admin(user_id):
+
+    return user_id == ADMIN_ID
+
+# ==========================================
+# CADASTRO
 # ==========================================
 
 def verificar_cadastro(message):
 
-    user_id = message.from_user.id
+    dados = dados_usuario(message)
 
-    nome = message.from_user.first_name or ""
-
-    username = message.from_user.username or ""
-
-    if not usuario_existe(user_id):
+    if not usuario_existe(dados["id"]):
 
         cadastrar_usuario(
 
-            user_id=user_id,
+            user_id=dados["id"],
 
-            nome=nome,
+            nome=dados["nome"],
 
-            username=username
+            username=dados["username"]
 
         )
 
@@ -57,101 +87,123 @@ def verificar_cadastro(message):
 
         atualizar_usuario(
 
-            user_id=user_id,
+            user_id=dados["id"],
 
-            nome=nome,
+            nome=dados["nome"],
 
-            username=username
+            username=dados["username"]
 
         )
 
-        atualizar_login(user_id)
+        atualizar_login(
 
-    return buscar_usuario(user_id)
+            dados["id"]
 
+        )
+
+    return buscar_usuario(
+
+        dados["id"]
+
+    )
 
 # ==========================================
-# VERIFICAR ADMIN
+# ENVIAR MENU
 # ==========================================
 
-def is_admin(user_id):
-
-    return user_id == ADMIN_ID# ==========================================
-# COMANDO START
-# ==========================================
-
-@bot.message_handler(commands=["start"])
-def start(message):
-
-    # Verifica cadastro
-    usuario = verificar_cadastro(message)
-
-    # Verifica se veio por convite
-    args = message.text.split()
-
-    if len(args) > 1:
-
-        convite = args[1]
-
-        # Exemplo:
-        # /start convite_123456
-
-        if convite.startswith("convite_"):
-
-            indicador = convite.replace("convite_", "")
-
-            # Aqui vamos implementar o sistema
-            # de indicações no afiliados.py
-            pass
+def enviar_menu(chat_id, usuario):
 
     texto = f"""
-🐶 <b>Bem-vindo ao Pitbull Rewards Platform!</b>
+🐶 <b>PITBULL REWARDS PLATFORM</b>
 
-Olá <b>{usuario['nome']}</b> 👋
+Olá <b>{usuario['nome']}</b>
 
 ━━━━━━━━━━━━━━━━━━
 
-🆔 <b>ID:</b> <code>{usuario['id']}</code>
-
-🔖 <b>Código:</b>
-<code>{usuario['codigo']}</code>
-
-💰 <b>Saldo:</b>
+💰 Saldo:
 R$ {usuario['saldo']:.2f}
 
-⭐ <b>Nível:</b>
+⭐ Nível:
 {usuario['nivel']}
 
-👑 <b>VIP:</b>
+👑 VIP:
 {usuario['vip']}
 
 ━━━━━━━━━━━━━━━━━━
 
-🎁 Convide amigos.
-
-🎡 Ganhe giros.
-
-🎫 Use raspadinhas.
-
-🏆 Complete missões.
-
-👇 Escolha uma opção abaixo.
+Escolha uma opção abaixo.
 """
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id,
 
         texto,
 
         reply_markup=menu_principal()
 
     )# ==========================================
+# START
+# ==========================================
+
+@bot.message_handler(commands=["start"])
+def start(message):
+
+    usuario = verificar_cadastro(message)
+
+    # Parâmetros do /start
+    args = message.text.split()
+
+    if len(args) > 1:
+
+        parametro = args[1]
+
+        # Exemplo:
+        # /start convite_ABC123
+
+        if parametro.startswith("convite_"):
+
+            codigo = parametro.replace("convite_", "")
+
+            # Sistema de indicação
+            # Será implementado no afiliados.py
+            pass
+
+    enviar_menu(
+
+        message.chat.id,
+
+        usuario
+
+    )
+
+# ==========================================
+# MENU PRINCIPAL
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🏠 Menu Principal")
+def menu(message):
+
+    usuario = buscar_usuario(
+
+        message.from_user.id
+
+    )
+
+    enviar_menu(
+
+        message.chat.id,
+
+        usuario
+
+    )
+
+# ==========================================
 # PAINEL ADMIN
 # ==========================================
 
 @bot.message_handler(commands=["admin"])
-def painel_admin(message):
+def admin(message):
 
     if not is_admin(message.from_user.id):
 
@@ -159,7 +211,7 @@ def painel_admin(message):
 
             message,
 
-            "❌ Você não tem permissão para acessar o painel."
+            "❌ Apenas administradores podem utilizar este comando."
 
         )
 
@@ -183,28 +235,61 @@ Escolha uma opção abaixo.
 
     )
 
-
 # ==========================================
-# MENU PRINCIPAL
+# PERFIL
 # ==========================================
 
-@bot.message_handler(func=lambda msg: msg.text == "🏠 Menu Principal")
-def voltar_menu(message):
+@bot.message_handler(func=lambda msg: msg.text == "👤 Perfil")
+def meu_perfil(message):
 
-    usuario = buscar_usuario(message.from_user.id)
+    usuario = perfil(
+
+        message.from_user.id
+
+    )
 
     texto = f"""
-🏠 <b>MENU PRINCIPAL</b>
+👤 <b>MEU PERFIL</b>
 
-Olá <b>{usuario['nome']}</b>
+━━━━━━━━━━━━━━━━━━
 
-💰 Saldo: R$ {usuario['saldo']:.2f}
+🆔 ID
 
-⭐ Nível: {usuario['nivel']}
+<code>{usuario['id']}</code>
 
-👑 VIP: {usuario['vip']}
+👤 Nome
 
-Escolha uma opção abaixo.
+{usuario['nome']}
+
+🔖 Código
+
+<code>{usuario['codigo']}</code>
+
+💰 Saldo
+
+R$ {usuario['saldo']:.2f}
+
+⭐ Nível
+
+{usuario['nivel']}
+
+👑 VIP
+
+{usuario['vip']}
+
+🏆 XP
+
+{usuario['xp']}
+
+👥 Indicados
+
+{usuario['indicados']}
+
+🔥 Sequência
+
+{usuario['streak']}
+
+━━━━━━━━━━━━━━━━━━
 """
 
     bot.send_message(
@@ -217,6 +302,239 @@ Escolha uma opção abaixo.
 
     )
 
+# ==========================================
+# CARTEIRA
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "💰 Carteira")
+def carteira(message):
+
+    usuario = perfil(
+
+        message.from_user.id
+
+    )
+
+    texto = f"""
+💰 <b>CARTEIRA</b>
+
+━━━━━━━━━━━━━━━━━━
+
+Saldo disponível
+
+R$ {usuario['saldo']:.2f}
+
+Saldo pendente
+
+R$ {usuario['saldo_pendente']:.2f}
+
+Saldo bloqueado
+
+R$ {usuario['saldo_bloqueado']:.2f}
+
+Total recebido
+
+R$ {usuario['total_ganho']:.2f}
+
+Total sacado
+
+R$ {usuario['total_sacado']:.2f}
+
+━━━━━━━━━━━━━━━━━━
+"""
+
+    bot.send_message(
+
+        message.chat.id,
+
+        texto,
+
+        reply_markup=menu_principal()
+
+    )# ==========================================
+# CONVIDAR AMIGOS
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "👥 Convidar Amigos")
+def convidar_amigos(message):
+
+    usuario = perfil(message.from_user.id)
+
+    link = f"https://t.me/{bot.get_me().username}?start=convite_{usuario['codigo']}"
+
+    texto = f"""
+👥 <b>CONVIDAR AMIGOS</b>
+
+Seu link exclusivo:
+
+<code>{link}</code>
+
+━━━━━━━━━━━━━━━━━━
+
+🔹 Compartilhe o seu link.
+
+🔹 Quando um amigo entrar usando o seu link e for aprovado pelo administrador, a recompensa será creditada automaticamente.
+
+Boa sorte!
+"""
+
+    bot.send_message(
+        message.chat.id,
+        texto,
+        reply_markup=menu_principal()
+    )
+
+# ==========================================
+# BÔNUS DIÁRIO
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🎁 Bônus Diário")
+def bonus_diario(message):
+
+    bot.send_message(
+        message.chat.id,
+        "🎁 O sistema de bônus diário será implementado na próxima etapa.",
+        reply_markup=menu_principal()
+    )
+
+# ==========================================
+# RANKING
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🏆 Ranking")
+def ranking(message):
+
+    bot.send_message(
+        message.chat.id,
+        "🏆 O sistema de ranking será implementado na próxima etapa.",
+        reply_markup=menu_principal()
+    )
+
+# ==========================================
+# INFORMAÇÕES
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "ℹ️ Informações")
+def informacoes(message):
+
+    texto = """
+ℹ️ <b>PITBULL REWARDS PLATFORM</b>
+
+Versão: 2.1
+
+Em desenvolvimento.
+
+Em breve:
+
+✅ Sistema VIP
+✅ Missões
+✅ Raspadinha
+✅ Roleta
+✅ Eventos
+✅ Tickets
+"""
+
+    bot.send_message(
+        message.chat.id,
+        texto,
+        reply_markup=menu_principal()
+    )
+
+# ==========================================
+# ATENDIMENTO
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🎫 Atendimento")
+def atendimento(message):
+
+    bot.send_message(
+        message.chat.id,
+        "🎫 O sistema de tickets será implementado na próxima etapa.",
+        reply_markup=menu_principal()
+    )# ==========================================
+# PIX
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "💳 PIX")
+def pix(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "💳 O sistema de PIX será implementado na próxima etapa.",
+
+        reply_markup=menu_principal()
+
+    )
+
+# ==========================================
+# SOLICITAR SAQUE
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "💸 Solicitar Saque")
+def saque(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "💸 O sistema de saques será implementado na próxima etapa.",
+
+        reply_markup=menu_principal()
+
+    )
+
+# ==========================================
+# ROLETA
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🎡 Roleta")
+def roleta(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "🎡 A roleta diária será implementada na próxima etapa.",
+
+        reply_markup=menu_principal()
+
+    )
+
+# ==========================================
+# RASPADINHA
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🎫 Raspadinha")
+def raspadinha(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "🎫 A raspadinha diária será implementada na próxima etapa.",
+
+        reply_markup=menu_principal()
+
+    )
+
+# ==========================================
+# MISSÕES
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.text == "🎯 Missões")
+def missoes(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "🎯 O sistema de missões será implementado na próxima etapa.",
+
+        reply_markup=menu_principal()
+
+    )
 
 # ==========================================
 # MENSAGENS DESCONHECIDAS
@@ -229,10 +547,9 @@ def mensagens(message):
 
         message,
 
-        "⚠️ Utilize os botões do menu para navegar pelo bot."
+        "⚠️ Utilize os botões do menu para navegar."
 
     )
-
 
 # ==========================================
 # INICIAR BOT
@@ -241,12 +558,19 @@ def mensagens(message):
 def iniciar_bot():
 
     print("=" * 50)
-    print("🐶 PITBULL REWARDS PLATFORM")
+
+    print("🐶 PITBULL REWARDS PLATFORM V3")
+
     print("🤖 Bot iniciado com sucesso!")
+
     print("=" * 50)
 
     bot.infinity_polling(
+
+        skip_pending=True,
+
         timeout=60,
-        long_polling_timeout=60,
-        skip_pending=True
+
+        long_polling_timeout=60
+
     )
