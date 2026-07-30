@@ -9,7 +9,7 @@ import telebot
 
 from config import (
     TOKEN,
-    ADMIN_ID
+    OWNER_ID
 )
 
 from teclado import (
@@ -61,7 +61,7 @@ def dados_usuario(message):
 
 def is_admin(user_id):
 
-    return user_id == ADMIN_ID
+    return user_id == OWNER_ID
 
 # ==========================================
 # CADASTRO
