@@ -1,48 +1,67 @@
 """
-=========================================
- PITBULL REWARDS PLATFORM V2
+==================================================
+ PITBULL REWARDS PLATFORM V3
  usuarios.py
-=========================================
+==================================================
 """
 
+from datetime import datetime
 import random
 import string
-
-from datetime import datetime
 
 from database import (
     conn,
     cursor,
-    fetchone,
-    fetchall,
-    execute
+    agora
 )
 
-# ==========================================
-# DATA / HORA
-# ==========================================
+# ==================================================
+# CACHE
+# ==================================================
 
-def agora():
-    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+CACHE_USUARIOS = {}
+
+# ==================================================
+# TRANSAÇÕES
+# ==================================================
+
+def iniciar_transacao():
+
+    conn.execute("BEGIN")
 
 
-# ==========================================
-# GERAR CÓDIGO DE REFERÊNCIA
-# ==========================================
+def confirmar_transacao():
 
-def gerar_codigo():
+    conn.commit()
+
+
+def cancelar_transacao():
+
+    conn.rollback()
+
+# ==================================================
+# DATA
+# ==================================================
+
+def data():
+
+    return agora()
+
+# ==================================================
+# GERADOR DE CÓDIGO
+# ==================================================
+
+def gerar_codigo(tamanho=8):
+
+    caracteres = string.ascii_uppercase + string.digits
 
     while True:
 
-        codigo = "PIT" + "".join(
+        codigo = "".join(
 
-            random.choices(
+            random.choice(caracteres)
 
-                string.ascii_uppercase + string.digits,
-
-                k=6
-
-            )
+            for _ in range(tamanho)
 
         )
 
@@ -58,64 +77,117 @@ def gerar_codigo():
 
             return codigo
 
+# ==================================================
+# CACHE
+# ==================================================
 
-# ==========================================
-# VERIFICAR SE O USUÁRIO EXISTE
-# ==========================================
+def limpar_cache(usuario_id=None):
 
-def usuario_existe(user_id):
+    if usuario_id is None:
+
+        CACHE_USUARIOS.clear()
+
+    else:
+
+        CACHE_USUARIOS.pop(
+
+            usuario_id,
+
+            None
+
+        )
+
+# ==================================================
+# USUÁRIO EXISTE
+# ==================================================
+
+def usuario_existe(usuario_id):
 
     cursor.execute(
 
-        "SELECT id FROM usuarios WHERE id=?",
+        """
 
-        (user_id,)
+        SELECT id
+
+        FROM usuarios
+
+        WHERE id=?
+
+        """,
+
+        (usuario_id,)
 
     )
 
     return cursor.fetchone() is not None
 
+# ==================================================
+# BUSCAR POR ID
+# ==================================================
 
-# ==========================================
-# BUSCAR USUÁRIO
-# ==========================================
+def buscar_usuario(usuario_id):
 
-def buscar_usuario(user_id):
+    if usuario_id in CACHE_USUARIOS:
+
+        return CACHE_USUARIOS[usuario_id]
 
     cursor.execute(
 
-        "SELECT * FROM usuarios WHERE id=?",
+        """
 
-        (user_id,)
+        SELECT *
+
+        FROM usuarios
+
+        WHERE id=?
+
+        """,
+
+        (usuario_id,)
 
     )
 
-    return cursor.fetchone()
+    usuario = cursor.fetchone()
 
+    if usuario:
 
-# ==========================================
+        CACHE_USUARIOS[usuario_id] = usuario
+
+    return usuario
+
+# ==================================================
+# BUSCAR POR CÓDIGO
+# ==================================================
+
+def buscar_codigo(codigo):
+
+    cursor.execute(
+
+        """
+
+        SELECT *
+
+        FROM usuarios
+
+        WHERE codigo=?
+
+        """,
+
+        (codigo,)
+
+    )
+
+    return cursor.fetchone()# ==================================================
 # CADASTRAR USUÁRIO
-# ==========================================
+# ==================================================
 
-def cadastrar_usuario(
-
-    user_id,
-
-    nome,
-
-    username=None,
-
-    convidado_por=None
-
-):
+def cadastrar_usuario(user_id, nome, username):
 
     if usuario_existe(user_id):
 
-        return False
+        return buscar_usuario(user_id)
 
     codigo = gerar_codigo()
-
-    data = agora()
 
     cursor.execute("""
 
@@ -129,21 +201,19 @@ def cadastrar_usuario(
 
         username,
 
-        convidado_por,
-
         created_at,
 
-        updated_at,
-
-        ultimo_login,
-
-        ultima_atividade
+        updated_at
 
     )
 
-    VALUES(?,?,?,?,?,?,?,?,?)
+    VALUES(
 
-    """,(
+        ?,?,?,?,?,?
+
+    )
+
+    """, (
 
         user_id,
 
@@ -153,66 +223,49 @@ def cadastrar_usuario(
 
         username,
 
-        convidado_por,
+        data(),
 
-        data,
-
-        data,
-
-        data,
-
-        data
+        data()
 
     ))
 
-    # Criar estatísticas do usuário
-
+    # Criar carteira automaticamente
     cursor.execute("""
 
-    INSERT INTO estatisticas(
+    INSERT INTO carteira(
 
-        usuario
-
-    )
-
-    VALUES(?)
-
-    """,(user_id,))
-
-    # Criar ranking
-
-    cursor.execute("""
-
-    INSERT INTO ranking(
-
-        usuario,
+        usuario_id,
 
         updated_at
 
     )
 
-    VALUES(?,?)
+    VALUES(
 
-    """,(user_id,data))
+        ?,?
+
+    )
+
+    """, (
+
+        user_id,
+
+        data()
+
+    ))
 
     conn.commit()
 
-    return True
+    limpar_cache(user_id)
+
+    return buscar_usuario(user_id)
 
 
-# ==========================================
-# ATUALIZAR DADOS DO USUÁRIO
-# ==========================================
+# ==================================================
+# ATUALIZAR USUÁRIO
+# ==================================================
 
-def atualizar_usuario(
-
-    user_id,
-
-    nome,
-
-    username
-
-):
+def atualizar_usuario(user_id, nome, username):
 
     cursor.execute("""
 
@@ -224,21 +277,17 @@ def atualizar_usuario(
 
         username=?,
 
-        updated_at=?,
-
-        ultima_atividade=?
+        updated_at=?
 
     WHERE id=?
 
-    """,(
+    """, (
 
         nome,
 
         username,
 
-        agora(),
-
-        agora(),
+        data(),
 
         user_id
 
@@ -246,10 +295,12 @@ def atualizar_usuario(
 
     conn.commit()
 
+    limpar_cache(user_id)
 
-# ==========================================
-# ATUALIZAR ÚLTIMO LOGIN
-# ==========================================
+
+# ==================================================
+# ÚLTIMO LOGIN
+# ==================================================
 
 def atualizar_login(user_id):
 
@@ -261,69 +312,552 @@ def atualizar_login(user_id):
 
         ultimo_login=?,
 
-        ultima_atividade=?
+        updated_at=?
 
     WHERE id=?
 
-    """,(
+    """, (
 
-        agora(),
+        data(),
 
-        agora(),
+        data(),
 
         user_id
 
     ))
 
-    conn.commit()# ==========================================
-# PERFIL
-# ==========================================
+    conn.commit()
 
-def perfil(user_id):
+    limpar_cache(user_id)
+
+
+# ==================================================
+# APROVAR USUÁRIO
+# ==================================================
+
+def aprovar_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        aprovado=1,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)
+
+
+# ==================================================
+# REJEITAR USUÁRIO
+# ==================================================
+
+def rejeitar_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        aprovado=0,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)
+
+
+# ==================================================
+# BLOQUEAR
+# ==================================================
+
+def bloquear_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        bloqueado=1,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)
+
+
+# ==================================================
+# DESBLOQUEAR
+# ==================================================
+
+def desbloquear_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        bloqueado=0,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)
+
+
+# ==================================================
+# BANIR
+# ==================================================
+
+def banir_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        banido=1,
+
+        status='BANIDO',
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)
+
+
+# ==================================================
+# DESBANIR
+# ==================================================
+
+def desbanir_usuario(user_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        banido=0,
+
+        status='ATIVO',
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        user_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(user_id)# ==================================================
+# CARTEIRA
+# ==================================================
+
+def saldo(usuario_id):
 
     cursor.execute("""
 
     SELECT *
 
-    FROM usuarios
+    FROM carteira
 
-    WHERE id=?
+    WHERE usuario_id=?
 
-    """,(user_id,))
+    """, (
+
+        usuario_id,
+
+    ))
 
     return cursor.fetchone()
 
 
-# ==========================================
-# SALDO
-# ==========================================
+# ==================================================
+# EXTRATO
+# ==================================================
 
-def saldo(user_id):
+def registrar_extrato(
+
+    usuario_id,
+
+    tipo,
+
+    categoria,
+
+    valor,
+
+    saldo_anterior,
+
+    saldo_atual,
+
+    descricao="",
+
+    referencia="",
+
+    admin_id=None
+
+):
 
     cursor.execute("""
 
-    SELECT saldo
+    INSERT INTO extrato(
 
-    FROM usuarios
+        usuario_id,
 
-    WHERE id=?
+        tipo,
 
-    """,(user_id,))
+        categoria,
 
-    resultado = cursor.fetchone()
+        valor,
 
-    if resultado:
+        saldo_anterior,
 
-        return resultado["saldo"]
+        saldo_atual,
 
-    return 0
+        referencia,
+
+        descricao,
+
+        admin_id,
+
+        created_at
+
+    )
+
+    VALUES(
+
+        ?,?,?,?,?,?,?,?,?,?
+
+    )
+
+    """, (
+
+        usuario_id,
+
+        tipo,
+
+        categoria,
+
+        valor,
+
+        saldo_anterior,
+
+        saldo_atual,
+
+        referencia,
+
+        descricao,
+
+        admin_id,
+
+        data()
+
+    ))
 
 
-# ==========================================
-# ADICIONAR XP
-# ==========================================
+# ==================================================
+# ADICIONAR SALDO
+# ==================================================
 
-def adicionar_xp(user_id, xp):
+def adicionar_saldo(
+
+    usuario_id,
+
+    valor,
+
+    categoria="GERAL",
+
+    descricao="",
+
+    referencia="",
+
+    admin_id=None
+
+):
+
+    iniciar_transacao()
+
+    try:
+
+        carteira = saldo(usuario_id)
+
+        saldo_anterior = carteira["saldo"]
+
+        saldo_atual = saldo_anterior + valor
+
+        cursor.execute("""
+
+        UPDATE carteira
+
+        SET
+
+            saldo=?,
+
+            total_recebido=total_recebido+?,
+
+            updated_at=?
+
+        WHERE usuario_id=?
+
+        """, (
+
+            saldo_atual,
+
+            valor,
+
+            data(),
+
+            usuario_id
+
+        ))
+
+        cursor.execute("""
+
+        UPDATE usuarios
+
+        SET
+
+            saldo=?,
+
+            total_ganho=total_ganho+?,
+
+            updated_at=?
+
+        WHERE id=?
+
+        """, (
+
+            saldo_atual,
+
+            valor,
+
+            data(),
+
+            usuario_id
+
+        ))
+
+        registrar_extrato(
+
+            usuario_id,
+
+            "ENTRADA",
+
+            categoria,
+
+            valor,
+
+            saldo_anterior,
+
+            saldo_atual,
+
+            descricao,
+
+            referencia,
+
+            admin_id
+
+        )
+
+        confirmar_transacao()
+
+        limpar_cache(usuario_id)
+
+        return True
+
+    except:
+
+        cancelar_transacao()
+
+        return False
+
+
+# ==================================================
+# REMOVER SALDO
+# ==================================================
+
+def remover_saldo(
+
+    usuario_id,
+
+    valor,
+
+    categoria="GERAL",
+
+    descricao="",
+
+    referencia="",
+
+    admin_id=None
+
+):
+
+    iniciar_transacao()
+
+    try:
+
+        carteira = saldo(usuario_id)
+
+        saldo_anterior = carteira["saldo"]
+
+        if saldo_anterior < valor:
+
+            cancelar_transacao()
+
+            return False
+
+        saldo_atual = saldo_anterior - valor
+
+        cursor.execute("""
+
+        UPDATE carteira
+
+        SET
+
+            saldo=?,
+
+            updated_at=?
+
+        WHERE usuario_id=?
+
+        """, (
+
+            saldo_atual,
+
+            data(),
+
+            usuario_id
+
+        ))
+
+        cursor.execute("""
+
+        UPDATE usuarios
+
+        SET
+
+            saldo=?,
+
+            updated_at=?
+
+        WHERE id=?
+
+        """, (
+
+            saldo_atual,
+
+            data(),
+
+            usuario_id
+
+        ))
+
+        registrar_extrato(
+
+            usuario_id,
+
+            "SAIDA",
+
+            categoria,
+
+            valor,
+
+            saldo_anterior,
+
+            saldo_atual,
+
+            descricao,
+
+            referencia,
+
+            admin_id
+
+        )
+
+        confirmar_transacao()
+
+        limpar_cache(usuario_id)
+
+        return True
+
+    except:
+
+        cancelar_transacao()
+
+        return False# ==================================================
+# XP
+# ==================================================
+
+def adicionar_xp(usuario_id, xp):
 
     cursor.execute("""
 
@@ -333,89 +867,36 @@ def adicionar_xp(user_id, xp):
 
         xp = xp + ?,
 
-        updated_at=?
+        experiencia_total = experiencia_total + ?,
 
-    WHERE id=?
+        updated_at = ?
 
-    """,(
+    WHERE id = ?
+
+    """, (
 
         xp,
 
-        agora(),
+        xp,
 
-        user_id
+        data(),
+
+        usuario_id
 
     ))
 
     conn.commit()
 
-    verificar_nivel(user_id)
+    atualizar_nivel(usuario_id)
+
+    limpar_cache(usuario_id)
 
 
-# ==========================================
-# VERIFICAR NÍVEL
-# ==========================================
+# ==================================================
+# REMOVER XP
+# ==================================================
 
-def verificar_nivel(user_id):
-
-    cursor.execute("""
-
-    SELECT
-
-        xp,
-
-        nivel
-
-    FROM usuarios
-
-    WHERE id=?
-
-    """,(user_id,))
-
-    usuario = cursor.fetchone()
-
-    if usuario is None:
-
-        return
-
-    xp = usuario["xp"]
-
-    nivel = usuario["nivel"]
-
-    novo_nivel = (xp // 100) + 1
-
-    if novo_nivel > nivel:
-
-        cursor.execute("""
-
-        UPDATE usuarios
-
-        SET
-
-            nivel=?,
-
-            updated_at=?
-
-        WHERE id=?
-
-        """,(
-
-            novo_nivel,
-
-            agora(),
-
-            user_id
-
-        ))
-
-        conn.commit()
-
-
-# ==========================================
-# ALTERAR STREAK
-# ==========================================
-
-def atualizar_streak(user_id, streak):
+def remover_xp(usuario_id, xp):
 
     cursor.execute("""
 
@@ -423,69 +904,459 @@ def atualizar_streak(user_id, streak):
 
     SET
 
-        streak=?,
+        xp = CASE
+            WHEN xp >= ? THEN xp - ?
+            ELSE 0
+        END,
+
+        updated_at = ?
+
+    WHERE id = ?
+
+    """, (
+
+        xp,
+
+        xp,
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# NÍVEL
+# ==================================================
+
+def atualizar_nivel(usuario_id):
+
+    usuario = buscar_usuario(usuario_id)
+
+    xp = usuario["xp"]
+
+    nivel = 1
+
+    if xp >= 500:
+        nivel = 2
+
+    if xp >= 1500:
+        nivel = 3
+
+    if xp >= 3000:
+        nivel = 4
+
+    if xp >= 5000:
+        nivel = 5
+
+    if xp >= 10000:
+        nivel = 6
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        nivel=?,
 
         updated_at=?
 
     WHERE id=?
 
-    """,(
+    """, (
 
-        streak,
+        nivel,
 
-        agora(),
+        data(),
 
-        user_id
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    atualizar_vip(usuario_id)
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# VIP
+# ==================================================
+
+def atualizar_vip(usuario_id):
+
+    usuario = buscar_usuario(usuario_id)
+
+    xp = usuario["xp"]
+
+    vip = "Bronze"
+
+    if xp >= 500:
+        vip = "Prata"
+
+    if xp >= 1500:
+        vip = "Ouro"
+
+    if xp >= 5000:
+        vip = "Diamante"
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        vip=?,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        vip,
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# PREMIUM
+# ==================================================
+
+def premium_ativo(usuario_id):
+
+    usuario = buscar_usuario(usuario_id)
+
+    return usuario["premium"] == 1
+
+
+def ativar_premium(usuario_id, dias=30):
+
+    from datetime import timedelta
+
+    inicio = datetime.now()
+
+    fim = inicio + timedelta(days=dias)
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        premium=1,
+
+        premium_expira=?,
+
+        premium_multiplicador=2,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        fim.strftime("%d/%m/%Y %H:%M:%S"),
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+def desativar_premium(usuario_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        premium=0,
+
+        premium_expira=NULL,
+
+        premium_multiplicador=1,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# STREAK
+# ==================================================
+
+def atualizar_streak(usuario_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        streak=streak+1,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+def resetar_streak(usuario_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        streak=0,
+
+        updated_at=?
+
+    WHERE id=?
+
+    """, (
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)# ==================================================
+# INDICAÇÕES
+# ==================================================
+
+def adicionar_indicado(indicador_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        indicados = indicados + 1,
+
+        indicacoes_aprovadas = indicacoes_aprovadas + 1,
+
+        updated_at = ?
+
+    WHERE id = ?
+
+    """, (
+
+        data(),
+
+        indicador_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(indicador_id)
+
+
+# ==================================================
+# GRUPO
+# ==================================================
+
+def verificar_grupo(usuario_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        grupo_verificado = 1,
+
+        updated_at = ?
+
+    WHERE id = ?
+
+    """, (
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# CANAL
+# ==================================================
+
+def verificar_canal(usuario_id):
+
+    cursor.execute("""
+
+    UPDATE usuarios
+
+    SET
+
+        canal_verificado = 1,
+
+        updated_at = ?
+
+    WHERE id = ?
+
+    """, (
+
+        data(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    limpar_cache(usuario_id)
+
+
+# ==================================================
+# NOTIFICAÇÕES
+# ==================================================
+
+def adicionar_notificacao(
+
+    usuario_id,
+
+    titulo,
+
+    mensagem,
+
+    tipo="INFO"
+
+):
+
+    cursor.execute("""
+
+    INSERT INTO notificacoes(
+
+        usuario_id,
+
+        titulo,
+
+        mensagem,
+
+        tipo,
+
+        created_at
+
+    )
+
+    VALUES(
+
+        ?,?,?,?,?
+
+    )
+
+    """, (
+
+        usuario_id,
+
+        titulo,
+
+        mensagem,
+
+        tipo,
+
+        data()
 
     ))
 
     conn.commit()
 
 
-# ==========================================
-# BUSCAR INVENTÁRIO
-# ==========================================
+# ==================================================
+# INVENTÁRIO
+# ==================================================
 
-def inventario(user_id):
+def adicionar_item(
 
-    cursor.execute("""
+    usuario_id,
 
-    SELECT *
+    item,
 
-    FROM inventario
+    quantidade=1
 
-    WHERE usuario=?
-
-    """,(user_id,))
-
-    return cursor.fetchall()
-
-
-# ==========================================
-# ADICIONAR ITEM
-# ==========================================
-
-def adicionar_item(user_id, item, quantidade=1):
+):
 
     cursor.execute("""
 
-    SELECT quantidade
+    SELECT id, quantidade
 
     FROM inventario
 
-    WHERE usuario=? AND item=?
+    WHERE
 
-    """,(
+        usuario_id=?
 
-        user_id,
+        AND item=?
+
+    """, (
+
+        usuario_id,
 
         item
 
     ))
 
-    resultado = cursor.fetchone()
+    registro = cursor.fetchone()
 
-    if resultado:
+    if registro:
 
         cursor.execute("""
 
@@ -495,19 +1366,17 @@ def adicionar_item(user_id, item, quantidade=1):
 
             quantidade = quantidade + ?,
 
-            updated_at=?
+            updated_at = ?
 
-        WHERE usuario=? AND item=?
+        WHERE id = ?
 
-        """,(
+        """, (
 
             quantidade,
 
-            agora(),
+            data(),
 
-            user_id,
-
-            item
+            registro["id"]
 
         ))
 
@@ -517,7 +1386,7 @@ def adicionar_item(user_id, item, quantidade=1):
 
         INSERT INTO inventario(
 
-            usuario,
+            usuario_id,
 
             item,
 
@@ -529,327 +1398,429 @@ def adicionar_item(user_id, item, quantidade=1):
 
         )
 
-        VALUES(?,?,?,?,?)
+        VALUES(
 
-        """,(
+            ?,?,?,?,?
 
-            user_id,
+        )
+
+        """, (
+
+            usuario_id,
 
             item,
 
             quantidade,
 
-            agora(),
+            data(),
 
-            agora()
+            data()
 
         ))
 
     conn.commit()
 
 
-# ==========================================
-# REMOVER ITEM
-# ==========================================
+# ==================================================
+# BAÚS
+# ==================================================
 
-def remover_item(user_id, item, quantidade=1):
+def adicionar_bau(
 
-    cursor.execute("""
+    usuario_id,
 
-    SELECT quantidade
+    tipo
 
-    FROM inventario
-
-    WHERE usuario=? AND item=?
-
-    """,(
-
-        user_id,
-
-        item
-
-    ))
-
-    resultado = cursor.fetchone()
-
-    if resultado is None:
-
-        return False
-
-    if resultado["quantidade"] < quantidade:
-
-        return False
+):
 
     cursor.execute("""
 
-    UPDATE inventario
+    INSERT INTO baus(
 
-    SET
+        usuario_id,
 
-        quantidade = quantidade - ?,
+        tipo,
 
-        updated_at=?
+        created_at
 
-    WHERE usuario=? AND item=?
+    )
 
-    """,(
+    VALUES(
 
-        quantidade,
+        ?,?,?
 
-        agora(),
+    )
 
-        user_id,
+    """, (
 
-        item
+        usuario_id,
 
-    ))
+        tipo,
 
-    conn.commit()
-
-    return True# ==========================================
-# ALTERAR SALDO
-# ==========================================
-
-def alterar_saldo(user_id, valor):
-
-    cursor.execute("""
-
-    UPDATE usuarios
-
-    SET
-
-        saldo = ?,
-
-        updated_at = ?
-
-    WHERE id = ?
-
-    """,(
-
-        valor,
-
-        agora(),
-
-        user_id
+        data()
 
     ))
 
     conn.commit()
 
 
-# ==========================================
-# ADICIONAR SALDO
-# ==========================================
+# ==================================================
+# CUPONS
+# ==================================================
 
-def adicionar_saldo(user_id, valor):
+def registrar_cupom(
+
+    usuario_id,
+
+    cupom_id
+
+):
 
     cursor.execute("""
 
-    UPDATE usuarios
+    INSERT INTO usuario_cupons(
 
-    SET
+        usuario_id,
 
-        saldo = saldo + ?,
+        cupom_id,
 
-        total_ganho = total_ganho + ?,
+        created_at
 
-        updated_at = ?
+    )
 
-    WHERE id = ?
+    VALUES(
 
-    """,(
+        ?,?,?
 
-        valor,
+    )
 
-        valor,
+    """, (
 
-        agora(),
+        usuario_id,
 
-        user_id
+        cupom_id,
+
+        data()
+
+    ))
+
+    conn.commit()# ==================================================
+# HISTÓRICO
+# ==================================================
+
+def registrar_historico(
+
+    usuario_id,
+
+    categoria,
+
+    titulo,
+
+    descricao="",
+
+    referencia=""
+
+):
+
+    cursor.execute("""
+
+    INSERT INTO historico(
+
+        usuario,
+
+        categoria,
+
+        titulo,
+
+        descricao,
+
+        referencia,
+
+        created_at
+
+    )
+
+    VALUES(
+
+        ?,?,?,?,?,?
+
+    )
+
+    """, (
+
+        usuario_id,
+
+        categoria,
+
+        titulo,
+
+        descricao,
+
+        referencia,
+
+        data()
 
     ))
 
     conn.commit()
 
 
-# ==========================================
-# DESCONTAR SALDO
-# ==========================================
+# ==================================================
+# LOG ADMIN
+# ==================================================
 
-def remover_saldo(user_id, valor):
+def registrar_log_admin(
 
-    cursor.execute("""
+    admin_id,
 
-    SELECT saldo
+    acao,
 
-    FROM usuarios
+    categoria,
 
-    WHERE id=?
+    usuario_alvo=None,
 
-    """,(user_id,))
+    referencia="",
 
-    usuario = cursor.fetchone()
+    detalhes=""
 
-    if usuario is None:
-
-        return False
-
-    if usuario["saldo"] < valor:
-
-        return False
+):
 
     cursor.execute("""
 
-    UPDATE usuarios
+    INSERT INTO logs_admin(
 
-    SET
+        admin_id,
 
-        saldo = saldo - ?,
+        acao,
 
-        updated_at = ?
+        categoria,
 
-    WHERE id = ?
+        usuario_alvo,
 
-    """,(
+        referencia,
 
-        valor,
+        detalhes,
 
-        agora(),
+        created_at
 
-        user_id
+    )
+
+    VALUES(
+
+        ?,?,?,?,?,?,?
+
+    )
+
+    """, (
+
+        admin_id,
+
+        acao,
+
+        categoria,
+
+        usuario_alvo,
+
+        referencia,
+
+        detalhes,
+
+        data()
 
     ))
 
     conn.commit()
+
+
+# ==================================================
+# ESTATÍSTICAS
+# ==================================================
+
+def incrementar_estatistica(chave, valor=1):
+
+    cursor.execute(
+
+        "SELECT valor FROM estatisticas WHERE chave=?",
+
+        (chave,)
+
+    )
+
+    registro = cursor.fetchone()
+
+    if registro:
+
+        cursor.execute("""
+
+        UPDATE estatisticas
+
+        SET
+
+            valor=?,
+
+            updated_at=?
+
+        WHERE chave=?
+
+        """, (
+
+            str(int(registro["valor"]) + valor),
+
+            data(),
+
+            chave
+
+        ))
+
+    else:
+
+        cursor.execute("""
+
+        INSERT INTO estatisticas(
+
+            chave,
+
+            valor,
+
+            updated_at
+
+        )
+
+        VALUES(
+
+            ?,?,?
+
+        )
+
+        """, (
+
+            chave,
+
+            str(valor),
+
+            data()
+
+        ))
+
+    conn.commit()
+
+
+# ==================================================
+# ENGINE DE RECOMPENSAS
+# ==================================================
+
+def recompensa(
+
+    usuario_id,
+
+    saldo=0,
+
+    xp=0,
+
+    item=None,
+
+    quantidade_item=1,
+
+    bau=None,
+
+    notificacao=None,
+
+    categoria="GERAL",
+
+    descricao=""
+
+):
+
+    if saldo > 0:
+
+        adicionar_saldo(
+
+            usuario_id,
+
+            saldo,
+
+            categoria=categoria,
+
+            descricao=descricao
+
+        )
+
+    if xp > 0:
+
+        adicionar_xp(
+
+            usuario_id,
+
+            xp
+
+        )
+
+    if item:
+
+        adicionar_item(
+
+            usuario_id,
+
+            item,
+
+            quantidade_item
+
+        )
+
+    if bau:
+
+        adicionar_bau(
+
+            usuario_id,
+
+            bau
+
+        )
+
+    if notificacao:
+
+        adicionar_notificacao(
+
+            usuario_id,
+
+            "🎉 Recompensa",
+
+            notificacao
+
+        )
+
+    registrar_historico(
+
+        usuario_id,
+
+        categoria,
+
+        "Recompensa Recebida",
+
+        descricao
+
+    )
+
+    incrementar_estatistica(
+
+        "recompensas"
+
+    )
 
     return True
 
 
-# ==========================================
-# ALTERAR VIP
-# ==========================================
+# ==================================================
+# PERFIL
+# ==================================================
 
-def alterar_vip(user_id, vip):
+def perfil(usuario_id):
 
-    cursor.execute("""
+    return buscar_usuario(usuario_id)# ==================================================
+# LISTAR USUÁRIOS
+# ==================================================
 
-    UPDATE usuarios
-
-    SET
-
-        vip = ?,
-
-        updated_at = ?
-
-    WHERE id = ?
-
-    """,(
-
-        vip,
-
-        agora(),
-
-        user_id
-
-    ))
-
-    conn.commit()
-
-
-# ==========================================
-# BANIR USUÁRIO
-# ==========================================
-
-def banir_usuario(user_id, motivo):
-
-    cursor.execute("""
-
-    UPDATE usuarios
-
-    SET
-
-        banido = 1,
-
-        motivo_ban = ?,
-
-        updated_at = ?
-
-    WHERE id = ?
-
-    """,(
-
-        motivo,
-
-        agora(),
-
-        user_id
-
-    ))
-
-    conn.commit()
-
-
-# ==========================================
-# DESBANIR USUÁRIO
-# ==========================================
-
-def desbanir_usuario(user_id):
-
-    cursor.execute("""
-
-    UPDATE usuarios
-
-    SET
-
-        banido = 0,
-
-        motivo_ban = NULL,
-
-        updated_at = ?
-
-    WHERE id = ?
-
-    """,(
-
-        agora(),
-
-        user_id
-
-    ))
-
-    conn.commit()
-
-
-# ==========================================
-# USUÁRIO BANIDO
-# ==========================================
-
-def usuario_banido(user_id):
-
-    cursor.execute("""
-
-    SELECT banido
-
-    FROM usuarios
-
-    WHERE id=?
-
-    """,(user_id,))
-
-    usuario = cursor.fetchone()
-
-    if usuario is None:
-
-        return False
-
-    return usuario["banido"] == 1
-
-
-# ==========================================
-# BUSCAR POR CÓDIGO
-# ==========================================
-
-def buscar_por_codigo(codigo):
+def listar_usuarios():
 
     cursor.execute("""
 
@@ -857,52 +1828,198 @@ def buscar_por_codigo(codigo):
 
     FROM usuarios
 
-    WHERE codigo=?
+    ORDER BY created_at DESC
 
-    """,(codigo,))
+    """)
 
-    return cursor.fetchone()
+    return cursor.fetchall()
 
 
-# ==========================================
+# ==================================================
 # TOTAL DE USUÁRIOS
-# ==========================================
+# ==================================================
 
 def total_usuarios():
 
     cursor.execute("""
 
-    SELECT COUNT(*)
+    SELECT COUNT(*) AS total
 
     FROM usuarios
 
     """)
 
-    return cursor.fetchone()[0]
+    resultado = cursor.fetchone()
+
+    return resultado["total"]
 
 
-# ==========================================
-# TOP 10 RANKING
-# ==========================================
+# ==================================================
+# USUÁRIOS APROVADOS
+# ==================================================
 
-def top_ranking():
+def total_aprovados():
 
     cursor.execute("""
 
-    SELECT
+    SELECT COUNT(*) AS total
 
-        nome,
+    FROM usuarios
 
-        xp,
+    WHERE aprovado=1
 
-        nivel
+    """)
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# USUÁRIOS PENDENTES
+# ==================================================
+
+def total_pendentes():
+
+    cursor.execute("""
+
+    SELECT COUNT(*) AS total
+
+    FROM usuarios
+
+    WHERE aprovado=0
+
+    """)
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# USUÁRIOS PREMIUM
+# ==================================================
+
+def total_premium():
+
+    cursor.execute("""
+
+    SELECT COUNT(*) AS total
+
+    FROM usuarios
+
+    WHERE premium=1
+
+    """)
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# USUÁRIOS VIP
+# ==================================================
+
+def total_vip(vip):
+
+    cursor.execute("""
+
+    SELECT COUNT(*) AS total
+
+    FROM usuarios
+
+    WHERE vip=?
+
+    """, (
+
+        vip,
+
+    ))
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# TOP INDICADORES
+# ==================================================
+
+def ranking_indicacoes(limite=10):
+
+    cursor.execute("""
+
+    SELECT *
+
+    FROM usuarios
+
+    ORDER BY indicados DESC
+
+    LIMIT ?
+
+    """, (
+
+        limite,
+
+    ))
+
+    return cursor.fetchall()
+
+
+# ==================================================
+# TOP XP
+# ==================================================
+
+def ranking_xp(limite=10):
+
+    cursor.execute("""
+
+    SELECT *
 
     FROM usuarios
 
     ORDER BY xp DESC
 
-    LIMIT 10
+    LIMIT ?
 
-    """)
+    """, (
+
+        limite,
+
+    ))
 
     return cursor.fetchall()
+
+
+# ==================================================
+# TOP SALDO
+# ==================================================
+
+def ranking_saldo(limite=10):
+
+    cursor.execute("""
+
+    SELECT *
+
+    FROM usuarios
+
+    ORDER BY saldo DESC
+
+    LIMIT ?
+
+    """, (
+
+        limite,
+
+    ))
+
+    return cursor.fetchall()
+
+
+# ==================================================
+# FECHAR CACHE
+# ==================================================
+
+def reiniciar_cache():
+
+    CACHE_USUARIOS.clear()
+
+
+# ==================================================
+# FINAL
+# ==================================================
+
+print("✅ usuarios.py carregado com sucesso.")
