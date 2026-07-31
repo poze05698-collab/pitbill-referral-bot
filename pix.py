@@ -72,3 +72,18 @@ Sua chave atual:
 
 Envie uma nova chave PIX para cadastrá-la.
 """
+# ==========================================
+# VALIDAÇÃO DA CHAVE PIX
+# ==========================================
+
+def validar_pix(chave):
+
+    chave = chave.strip()
+
+    if len(chave) < 5:
+        return False
+
+    if len(chave) > 120:
+        return False
+
+    return True
