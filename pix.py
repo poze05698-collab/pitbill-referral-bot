@@ -6,7 +6,10 @@
 """
 
 from database import conn, cursor
-from usuarios import buscar_usuario
+from usuarios import (
+    buscar_usuario,
+    limpar_cache
+)
 
 # ==========================================
 # CONSULTAR PIX
@@ -45,8 +48,9 @@ def salvar_pix(usuario_id, chave):
 
     conn.commit()
 
-    return True
+limpar_cache(usuario_id)
 
+return True
 # ==========================================
 # TEXTO DO PIX
 # ==========================================
