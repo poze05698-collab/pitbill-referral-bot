@@ -146,39 +146,39 @@ def start(message):
 
     args = message.text.split()
 
-if len(args) > 1:
+    if len(args) > 1:
 
-    parametro = args[1]
+        parametro = args[1]
 
-    if parametro.startswith("convite_"):
+        if parametro.startswith("convite_"):
 
-        codigo = parametro.replace(
-            "convite_",
-            ""
-        )
-
-        cursor.execute(
-            """
-            SELECT id
-            FROM usuarios
-            WHERE codigo=?
-            """,
-            (codigo,)
-        )
-
-        indicador = cursor.fetchone()
-
-        if indicador:
-
-            registrar_indicacao(
-                indicador["id"],
-                message.from_user.id
+            codigo = parametro.replace(
+                "convite_",
+                ""
             )
 
-enviar_menu(
-    message.chat.id,
-    usuario
-)
+            cursor.execute(
+                """
+                SELECT id
+                FROM usuarios
+                WHERE codigo=?
+                """,
+                (codigo,)
+            )
+
+            indicador = cursor.fetchone()
+
+            if indicador:
+
+                registrar_indicacao(
+                    indicador["id"],
+                    message.from_user.id
+                )
+
+    enviar_menu(
+        message.chat.id,
+        usuario
+    )
 
 
 # ==================================================
