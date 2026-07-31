@@ -1,8 +1,8 @@
 """
-=========================================
- PITBULL REWARDS PLATFORM V3
- bot.py
-=========================================
+==================================================
+PITBULL REWARDS PLATFORM V3
+bot.py
+==================================================
 """
 
 import telebot
@@ -28,7 +28,9 @@ from usuarios import (
     adicionar_saldo
 )
 
-from carteira import texto_carteira
+from carteira import (
+    texto_carteira
+)
 
 from pix import (
     texto_pix,
@@ -36,31 +38,28 @@ from pix import (
     validar_pix
 )
 
-from saques import solicitar_saque
+from saques import (
+    solicitar_saque
+)
 
-# ==========================================
+# ==================================================
 # BOT
-# ==========================================
+# ==================================================
 
 bot = telebot.TeleBot(
     TOKEN,
     parse_mode="HTML"
 )
 
-# ==========================================
+# ==================================================
 # ESTADOS TEMPORÁRIOS
-# ==========================================
-
-# Guarda o que cada usuário está fazendo.
-# Exemplos:
-# estados[id] = "PIX"
-# estados[id] = "SAQUE"
+# ==================================================
 
 estados = {}
 
-# ==========================================
+# ==================================================
 # FUNÇÕES AUXILIARES
-# ==========================================
+# ==================================================
 
 def dados_usuario(message):
 
@@ -100,9 +99,9 @@ def verificar_cadastro(message):
     )
 
 
-def is_admin(user_id):
+def is_admin(usuario_id):
 
-    return user_id == OWNER_ID
+    return usuario_id == OWNER_ID
 
 
 def enviar_menu(chat_id, usuario):
@@ -132,9 +131,9 @@ Escolha uma opção abaixo.
         chat_id,
         texto,
         reply_markup=menu_principal()
-    )# ==========================================
+    )# ==================================================
 # START
-# ==========================================
+# ==================================================
 
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -149,9 +148,12 @@ def start(message):
 
         if parametro.startswith("convite_"):
 
-            codigo = parametro.replace("convite_", "")
+            codigo = parametro.replace(
+                "convite_",
+                ""
+            )
 
-            # Sistema de indicação
+            # Sistema de indicações
             # Será implementado depois
             pass
 
@@ -161,12 +163,12 @@ def start(message):
     )
 
 
-# ==========================================
+# ==================================================
 # MENU PRINCIPAL
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🏠 Menu Principal")
-def menu_principal_handler(message):
+def menu_handler(message):
 
     usuario = buscar_usuario(
         message.from_user.id
@@ -178,9 +180,9 @@ def menu_principal_handler(message):
     )
 
 
-# ==========================================
+# ==================================================
 # ADMIN
-# ==========================================
+# ==================================================
 
 @bot.message_handler(commands=["admin"])
 def admin(message):
@@ -199,15 +201,15 @@ def admin(message):
         """
 🛡️ <b>PAINEL ADMINISTRATIVO</b>
 
-Bem-vindo!
+Bem-vindo ao painel administrativo.
 """,
         reply_markup=menu_admin()
     )
 
 
-# ==========================================
-# ADICIONAR SALDO (ADMIN)
-# ==========================================
+# ==================================================
+# ADICIONAR SALDO
+# ==================================================
 
 @bot.message_handler(commands=["addsaldo"])
 def comando_addsaldo(message):
@@ -240,7 +242,7 @@ def comando_addsaldo(message):
             args[2].replace(",", ".")
         )
 
-        resultado = adicionar_saldo(
+        sucesso = adicionar_saldo(
             usuario_id,
             valor,
             categoria="ADMIN",
@@ -248,7 +250,7 @@ def comando_addsaldo(message):
             admin_id=message.from_user.id
         )
 
-        if resultado:
+        if sucesso:
 
             bot.reply_to(
                 message,
@@ -266,11 +268,10 @@ def comando_addsaldo(message):
 
         bot.reply_to(
             message,
-            f"Erro:\n{erro}"
-        )
-    )# ==========================================
+            f"❌ Erro:\n{erro}"
+        )# ==================================================
 # PERFIL
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "👤 Perfil")
 def meu_perfil(message):
@@ -317,9 +318,9 @@ R$ {usuario['saldo']:.2f}
     )
 
 
-# ==========================================
+# ==================================================
 # CARTEIRA
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "💰 Carteira")
 def carteira(message):
@@ -331,9 +332,9 @@ def carteira(message):
     )
 
 
-# ==========================================
+# ==================================================
 # PIX
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 PIX")
 def pix(message):
@@ -347,13 +348,22 @@ def pix(message):
 
     bot.send_message(
         message.chat.id,
-        "✍️ Agora envie sua chave PIX."
+        """
+✍️ Envie sua chave PIX.
+
+Pode ser:
+
+• CPF
+• Telefone
+• E-mail
+• Chave Aleatória
+"""
     )
 
 
-# ==========================================
+# ==================================================
 # SOLICITAR SAQUE
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "💸 Solicitar Saque")
 def saque(message):
@@ -362,10 +372,16 @@ def saque(message):
 
     bot.send_message(
         message.chat.id,
-        "💸 Digite o valor que deseja sacar.\n\nExemplo:\n20"
-    )# ==========================================
+        """
+💸 Digite o valor do saque.
+
+Exemplo:
+
+20
+"""
+    )# ==================================================
 # CONVIDAR AMIGOS
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "👥 Convidar Amigos")
 def convidar_amigos(message):
@@ -377,13 +393,17 @@ def convidar_amigos(message):
     texto = f"""
 👥 <b>CONVIDAR AMIGOS</b>
 
+━━━━━━━━━━━━━━━━━━
+
 Seu link exclusivo:
 
 <code>{link}</code>
 
 ━━━━━━━━━━━━━━━━━━
 
-Compartilhe seu link e ganhe recompensas por cada indicação válida.
+Convide seus amigos utilizando este link.
+
+Você receberá recompensas por cada indicação válida.
 """
 
     bot.send_message(
@@ -393,9 +413,9 @@ Compartilhe seu link e ganhe recompensas por cada indicação válida.
     )
 
 
-# ==========================================
+# ==================================================
 # BÔNUS DIÁRIO
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🎁 Bônus Diário")
 def bonus_diario(message):
@@ -407,9 +427,9 @@ def bonus_diario(message):
     )
 
 
-# ==========================================
+# ==================================================
 # RANKING
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🏆 Ranking")
 def ranking(message):
@@ -421,9 +441,9 @@ def ranking(message):
     )
 
 
-# ==========================================
+# ==================================================
 # ATENDIMENTO
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🎫 Atendimento")
 def atendimento(message):
@@ -435,37 +455,37 @@ def atendimento(message):
     )
 
 
-# ==========================================
+# ==================================================
 # ROLETA
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🎡 Roleta")
 def roleta(message):
 
     bot.send_message(
         message.chat.id,
-        "🎡 Roleta em desenvolvimento.",
+        "🎡 Sistema de roleta em desenvolvimento.",
         reply_markup=menu_principal()
     )
 
 
-# ==========================================
+# ==================================================
 # RASPADINHA
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🎫 Raspadinha")
 def raspadinha(message):
 
     bot.send_message(
         message.chat.id,
-        "🎫 Raspadinha em desenvolvimento.",
+        "🎫 Sistema de raspadinha em desenvolvimento.",
         reply_markup=menu_principal()
     )
 
 
-# ==========================================
+# ==================================================
 # MISSÕES
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "🎯 Missões")
 def missoes(message):
@@ -477,51 +497,61 @@ def missoes(message):
     )
 
 
-# ==========================================
+# ==================================================
 # INFORMAÇÕES
-# ==========================================
+# ==================================================
 
 @bot.message_handler(func=lambda msg: msg.text == "ℹ️ Informações")
 def informacoes(message):
 
     texto = """
-ℹ️ <b>PITBULL REWARDS PLATFORM</b>
+ℹ️ <b>PITBULL REWARDS PLATFORM V3</b>
 
-Versão 3.0
+━━━━━━━━━━━━━━━━━━
 
-🚧 Plataforma em desenvolvimento.
+Versão: 3.0
 
-Em breve:
+Status:
+✅ Sistema de usuários
+✅ Carteira
+✅ PIX
+✅ Saques
 
-✅ Sistema VIP
-✅ Jogos
-✅ Missões
-✅ Eventos
-✅ Tickets
-✅ Ranking
+🚧 Em desenvolvimento:
+
+• Afiliados
+• Ranking
+• VIP
+• Premium
+• Tickets
+• Eventos
+• Loja
 """
 
     bot.send_message(
         message.chat.id,
         texto,
         reply_markup=menu_principal()
-    )# ==========================================
+    )# ==================================================
 # GERENCIADOR DE MENSAGENS
-# ==========================================
+# ==================================================
 
-@bot.message_handler(func=lambda msg: True)
+@bot.message_handler(func=lambda message: True)
 def gerenciador(message):
 
     usuario_id = message.from_user.id
-    texto = message.text.strip()
 
-    # -------------------------
-    # CADASTRAR PIX
-    # -------------------------
+    estado = estados.get(usuario_id)
 
-    if estados.get(usuario_id) == "PIX":
+    # ===============================================
+    # CADASTRO DE PIX
+    # ===============================================
 
-        if not validar_pix(texto):
+    if estado == "PIX":
+
+        chave = message.text.strip()
+
+        if not validar_pix(chave):
 
             bot.send_message(
                 message.chat.id,
@@ -529,36 +559,46 @@ def gerenciador(message):
             )
             return
 
-        salvar_pix(usuario_id, texto)
+        if salvar_pix(usuario_id, chave):
 
-        estados.pop(usuario_id, None)
+            estados.pop(usuario_id, None)
 
-        bot.send_message(
-            message.chat.id,
-            "✅ Chave PIX cadastrada com sucesso!",
-            reply_markup=menu_principal()
-        )
+            bot.send_message(
+                message.chat.id,
+                "✅ Chave PIX cadastrada com sucesso!",
+                reply_markup=menu_principal()
+            )
+
+        else:
+
+            bot.send_message(
+                message.chat.id,
+                "❌ Não foi possível cadastrar sua chave PIX."
+            )
+
         return
 
-    # -------------------------
-    # SOLICITAR SAQUE
-    # -------------------------
+    # ===============================================
+    # SOLICITAÇÃO DE SAQUE
+    # ===============================================
 
-    if estados.get(usuario_id) == "SAQUE":
+    if estado == "SAQUE":
 
         try:
 
-            valor = float(texto.replace(",", "."))
+            valor = float(
+                message.text.replace(",", ".")
+            )
 
         except ValueError:
 
             bot.send_message(
                 message.chat.id,
-                "❌ Digite apenas um número.\n\nExemplo:\n20"
+                "❌ Digite apenas o valor.\n\nExemplo:\n20"
             )
             return
 
-        sucesso, resposta = solicitar_saque(
+        resposta = solicitar_saque(
             usuario_id,
             valor
         )
@@ -570,32 +610,39 @@ def gerenciador(message):
             resposta,
             reply_markup=menu_principal()
         )
+
         return
 
-    # -------------------------
-    # DESCONHECIDO
-    # -------------------------
+    # ===============================================
+    # MENSAGEM PADRÃO
+    # ===============================================
 
     bot.send_message(
         message.chat.id,
         "⚠️ Utilize os botões do menu.",
         reply_markup=menu_principal()
-    )
-
-
-# ==========================================
-# INICIAR BOT
-# ==========================================
+    )# ==================================================
+# INICIALIZAÇÃO DO BOT
+# ==================================================
 
 def iniciar_bot():
 
     print("=" * 50)
     print("🐶 PITBULL REWARDS PLATFORM V3")
-    print("🤖 Bot iniciado com sucesso!")
+    print("🚀 Bot iniciado com sucesso!")
     print("=" * 50)
 
     bot.infinity_polling(
         skip_pending=True,
-        timeout=60,
-        long_polling_timeout=60
+        timeout=30,
+        long_polling_timeout=30
     )
+
+
+# ==================================================
+# MAIN
+# ==================================================
+
+if __name__ == "__main__":
+
+    iniciar_bot()
