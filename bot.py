@@ -6,7 +6,11 @@
 """
 
 import telebot
+# ==========================================
+# ESTADOS DOS USUÁRIOS
+# ==========================================
 
+estado_usuario = {}
 from config import (
     TOKEN,
     OWNER_ID
@@ -32,6 +36,7 @@ from pix import (
     salvar_pix,
     validar_pix
 )
+from saques import solicitar_saque
 # ==========================================
 # BOT
 # ==========================================
@@ -446,13 +451,13 @@ def pix(message):
 @bot.message_handler(func=lambda msg: msg.text == "💸 Solicitar Saque")
 def saque(message):
 
+    estado_usuario[message.from_user.id] = "AGUARDANDO_SAQUE"
+
     bot.send_message(
 
         message.chat.id,
 
-        "💸 O sistema de saques será implementado na próxima etapa.",
-
-        reply_markup=menu_principal()
+        "💸 Digite o valor que deseja sacar.\n\nExemplo:\n20"
 
     )
 
@@ -547,6 +552,51 @@ def cadastrar_pix(message):
         message.chat.id,
         "✅ Sua chave PIX foi cadastrada com sucesso!",
         reply_markup=menu_principal()
+    )
+ # ==========================================
+# RECEBER VALOR DO SAQUE
+# ==========================================
+
+@bot.message_handler(func=lambda msg: msg.from_user.id in estado_usuario)
+def receber_valor_saque(message):
+
+    if estado_usuario.get(message.from_user.id) != "AGUARDANDO_SAQUE":
+        return
+
+    try:
+
+        valor = float(message.text.replace(",", "."))
+
+    except ValueError:
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "❌ Digite um valor válido."
+
+        )
+
+        return
+
+    sucesso, resposta = solicitar_saque(
+
+        message.from_user.id,
+
+        valor
+
+    )
+
+    del estado_usuario[message.from_user.id]
+
+    bot.send_message(
+
+        message.chat.id,
+
+        resposta,
+
+        reply_markup=menu_principal()
+
     )
 # ==========================================
 # MENSAGENS DESCONHECIDAS
