@@ -27,7 +27,11 @@ from usuarios import (
     saldo
 )
 from carteira import texto_carteira
-from pix import texto_pix
+from pix import (
+    texto_pix,
+    salvar_pix,
+    validar_pix
+)
 # ==========================================
 # BOT
 # ==========================================
@@ -502,7 +506,48 @@ def missoes(message):
         reply_markup=menu_principal()
 
     )
+# ==========================================
+# CADASTRAR PIX
+# ==========================================
 
+@bot.message_handler(func=lambda msg: msg.text and not msg.text.startswith("/"))
+def cadastrar_pix(message):
+
+    texto = message.text.strip()
+
+    # Ignora os botões do menu
+    botoes = [
+        "🏠 Menu Principal",
+        "👤 Perfil",
+        "💰 Carteira",
+        "💳 PIX",
+        "💸 Solicitar Saque",
+        "👥 Convidar Amigos",
+        "🎁 Bônus Diário",
+        "🏆 Ranking",
+        "🎫 Atendimento",
+        "🎡 Roleta",
+        "🎫 Raspadinha",
+        "🎯 Missões",
+        "ℹ️ Informações",
+    ]
+
+    if texto in botoes:
+        return
+
+    if not validar_pix(texto):
+        return
+
+    salvar_pix(
+        message.from_user.id,
+        texto
+    )
+
+    bot.send_message(
+        message.chat.id,
+        "✅ Sua chave PIX foi cadastrada com sucesso!",
+        reply_markup=menu_principal()
+    )
 # ==========================================
 # MENSAGENS DESCONHECIDAS
 # ==========================================
