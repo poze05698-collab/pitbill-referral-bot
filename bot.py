@@ -26,7 +26,7 @@ from usuarios import (
     perfil,
     saldo
 )
-
+from carteira import texto_carteira
 # ==========================================
 # BOT
 # ==========================================
@@ -309,45 +309,11 @@ R$ {usuario['saldo']:.2f}
 @bot.message_handler(func=lambda msg: msg.text == "💰 Carteira")
 def carteira(message):
 
-    usuario = perfil(
-
-        message.from_user.id
-
-    )
-
-    texto = f"""
-💰 <b>CARTEIRA</b>
-
-━━━━━━━━━━━━━━━━━━
-
-Saldo disponível
-
-R$ {usuario['saldo']:.2f}
-
-Saldo pendente
-
-R$ {usuario['saldo_pendente']:.2f}
-
-Saldo bloqueado
-
-R$ {usuario['saldo_bloqueado']:.2f}
-
-Total recebido
-
-R$ {usuario['total_ganho']:.2f}
-
-Total sacado
-
-R$ {usuario['total_sacado']:.2f}
-
-━━━━━━━━━━━━━━━━━━
-"""
-
     bot.send_message(
 
         message.chat.id,
 
-        texto,
+        texto_carteira(message.from_user.id),
 
         reply_markup=menu_principal()
 
