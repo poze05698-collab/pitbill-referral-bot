@@ -24,7 +24,8 @@ from usuarios import (
     atualizar_login,
     buscar_usuario,
     perfil,
-    saldo
+    saldo,
+    adicionar_saldo
 )
 
 from carteira import texto_carteira
@@ -204,8 +205,6 @@ Bem-vindo!
      # ==========================================
 # ADICIONAR SALDO (ADMIN)
 # ==========================================
-
-from usuarios import adicionar_saldo
 
 
 @bot.message_handler(commands=["addsaldo"])
