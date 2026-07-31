@@ -48,9 +48,9 @@ def salvar_pix(usuario_id, chave):
 
     conn.commit()
 
-limpar_cache(usuario_id)
+    limpar_cache(usuario_id)
 
-return True
+    return True
 # ==========================================
 # TEXTO DO PIX
 # ==========================================
