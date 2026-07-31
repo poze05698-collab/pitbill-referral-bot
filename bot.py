@@ -42,6 +42,10 @@ from saques import (
     solicitar_saque
 )
 
+from indicacoes import (
+    registrar_indicacao
+)
+from database import cursor
 # ==================================================
 # BOT
 # ==================================================
@@ -148,19 +152,33 @@ def start(message):
 
         if parametro.startswith("convite_"):
 
-            codigo = parametro.replace(
-                "convite_",
-                ""
-            )
-
-            # Sistema de indicações
-            # Será implementado depois
-            pass
-
-    enviar_menu(
-        message.chat.id,
-        usuario
+    codigo = parametro.replace(
+        "convite_",
+        ""
     )
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM usuarios
+        WHERE codigo=?
+        """,
+        (codigo,)
+    )
+
+    indicador = cursor.fetchone()
+
+    if indicador:
+
+        registrar_indicacao(
+            indicador["id"],
+            message.from_user.id
+        )
+
+enviar_menu(
+    message.chat.id,
+    usuario
+)
 
 
 # ==================================================
