@@ -519,8 +519,8 @@ def missoes(message):
 @bot.message_handler(func=lambda msg: msg.text and not msg.text.startswith("/"))
 def cadastrar_pix(message):
 
-    if obter_estado(message.from_user.id) != "SAQUE":
-    return
+    if obter_estado(message.from_user.id) == "SAQUE":
+        return
 
     texto = message.text.strip()
 
