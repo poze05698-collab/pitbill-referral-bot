@@ -6,11 +6,7 @@
 """
 
 import telebot
-# ==========================================
-# ESTADOS DOS USUÁRIOS
-# ==========================================
 
-estado_usuario = {}
 from config import (
     TOKEN,
     OWNER_ID
@@ -37,6 +33,11 @@ from pix import (
     validar_pix
 )
 from saques import solicitar_saque
+from estado import (
+    definir_estado,
+    obter_estado,
+    limpar_estado
+)
 # ==========================================
 # BOT
 # ==========================================
@@ -451,7 +452,10 @@ def pix(message):
 @bot.message_handler(func=lambda msg: msg.text == "💸 Solicitar Saque")
 def saque(message):
 
-    estado_usuario[message.from_user.id] = "AGUARDANDO_SAQUE"
+    definir_estado(
+    message.from_user.id,
+    "SAQUE"
+)
 
     bot.send_message(
 
@@ -518,7 +522,7 @@ def missoes(message):
 @bot.message_handler(func=lambda msg: msg.text and not msg.text.startswith("/"))
 def cadastrar_pix(message):
 
-    if estado_usuario.get(message.from_user.id) == "AGUARDANDO_SAQUE":
+    if obter_estado(message.from_user.id) == "SAQUE":
         return
 
     texto = message.text.strip()
@@ -561,13 +565,13 @@ def cadastrar_pix(message):
 # RECEBER VALOR DO SAQUE
 # ==========================================
 
-@bot.message_handler(func=lambda msg: msg.from_user.id in estado_usuario)
+@bot.message_handler(func=lambda msg: obter_estado(msg.from_user.id) == "SAQUE")
 def receber_valor_saque(message):
 
     print(">>> RECEBER_VALOR_SAQUE FOI CHAMADO")
     print(message.text)
 
-    if estado_usuario.get(message.from_user.id) != "AGUARDANDO_SAQUE":
+    if obter_estado(message.from_user.id) != "SAQUE":
         return
 
     try:
@@ -594,7 +598,7 @@ def receber_valor_saque(message):
 
     )
 
-    del estado_usuario[message.from_user.id]
+    limpar_estado(message.from_user.id)
 
     bot.send_message(
 
