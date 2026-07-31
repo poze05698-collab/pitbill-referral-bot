@@ -202,16 +202,23 @@ def admin(message):
 Bem-vindo!
 """,
         reply_markup=menu_admin()
-     # ==========================================
+    )
+
+
+# ==========================================
 # ADICIONAR SALDO (ADMIN)
 # ==========================================
-
 
 @bot.message_handler(commands=["addsaldo"])
 def comando_addsaldo(message):
 
     if not is_admin(message.from_user.id):
-        bot.reply_to(message, "❌ Você não tem permissão.")
+
+        bot.reply_to(
+            message,
+            "❌ Você não tem permissão."
+        )
+
         return
 
     try:
@@ -219,22 +226,29 @@ def comando_addsaldo(message):
         args = message.text.split()
 
         if len(args) != 3:
+
             bot.reply_to(
                 message,
                 "Uso:\n/addsaldo ID VALOR\n\nExemplo:\n/addsaldo 123456789 100"
             )
+
             return
 
         usuario_id = int(args[1])
-        valor = float(args[2].replace(",", "."))
 
-        if adicionar_saldo(
+        valor = float(
+            args[2].replace(",", ".")
+        )
+
+        resultado = adicionar_saldo(
             usuario_id,
             valor,
             categoria="ADMIN",
             descricao="Saldo adicionado pelo administrador",
             admin_id=message.from_user.id
-        ):
+        )
+
+        if resultado:
 
             bot.reply_to(
                 message,
