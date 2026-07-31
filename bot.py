@@ -27,6 +27,7 @@ from usuarios import (
     saldo
 )
 from carteira import texto_carteira
+from pix import texto_pix
 # ==========================================
 # BOT
 # ==========================================
@@ -428,7 +429,7 @@ def pix(message):
 
         message.chat.id,
 
-        "💳 O sistema de PIX será implementado na próxima etapa.",
+        texto_pix(message.from_user.id),
 
         reply_markup=menu_principal()
 
