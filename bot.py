@@ -570,6 +570,8 @@ def receber_valor_saque(message):
     if estado_usuario.get(message.from_user.id) != "AGUARDANDO_SAQUE":
         return
 
+    try:
+
         valor = float(message.text.replace(",", "."))
 
     except ValueError:
