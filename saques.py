@@ -58,19 +58,19 @@ def solicitar_saque(usuario_id, valor):
     usuario = buscar_usuario(usuario_id)
 
     if usuario is None:
-        return False, "❌ Usuário não encontrado."
-
+        return "❌ Usuário não encontrado."
+     
     # Verifica se possui PIX
     if not usuario["pix"]:
-        return False, "❌ Você precisa cadastrar uma chave PIX primeiro."
+        return "❌ Você precisa cadastrar uma chave PIX primeiro."
 
     # Verifica saldo
     if float(usuario["saldo"]) < valor:
-        return False, "❌ Saldo insuficiente."
+        return "❌ Saldo insuficiente."
 
     # Valor mínimo
     if valor < VALOR_MINIMO:
-        return False, f"❌ O saque mínimo é R$ {VALOR_MINIMO:.2f}."
+        return f"❌ O saque mínimo é R$ {VALOR_MINIMO:.2f}."
 
     cursor.execute("""
 
@@ -110,4 +110,4 @@ def solicitar_saque(usuario_id, valor):
 
     conn.commit()
 
-    return True, "✅ Solicitação enviada com sucesso!"
+    return "✅ Solicitação enviada com sucesso!"
