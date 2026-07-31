@@ -564,10 +564,11 @@ def cadastrar_pix(message):
 @bot.message_handler(func=lambda msg: msg.from_user.id in estado_usuario)
 def receber_valor_saque(message):
 
+    print(">>> RECEBER_VALOR_SAQUE FOI CHAMADO")
+    print(message.text)
+
     if estado_usuario.get(message.from_user.id) != "AGUARDANDO_SAQUE":
         return
-
-    try:
 
         valor = float(message.text.replace(",", "."))
 
