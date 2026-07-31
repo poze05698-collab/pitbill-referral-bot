@@ -518,7 +518,11 @@ def missoes(message):
 @bot.message_handler(func=lambda msg: msg.text and not msg.text.startswith("/"))
 def cadastrar_pix(message):
 
+    if estado_usuario.get(message.from_user.id) == "AGUARDANDO_SAQUE":
+        return
+
     texto = message.text.strip()
+
 
     # Ignora os botões do menu
     botoes = [
