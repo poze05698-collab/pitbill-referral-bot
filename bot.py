@@ -52,9 +52,10 @@ from admin_menu import (
 )
 
 from admin_usuarios import (
-    menu_admin_usuarios
+    menu_admin_usuarios,
+    buscar_usuario_admin,
+    texto_usuario_admin
 )
-
 from indicacoes import (
     registrar_indicacao
 )
@@ -240,7 +241,33 @@ Escolha uma opção abaixo.
     reply_markup=menu_admin_principal()
 )
 
+# ==================================================
+# ADMIN - BUSCAR USUÁRIO
+# ==================================================
 
+@bot.message_handler(func=lambda msg: msg.text == "🔍 Buscar Usuário")
+def admin_buscar_usuario(message):
+
+    if not is_admin(message.from_user.id):
+        return
+
+    estados[message.from_user.id] = "BUSCAR_USUARIO"
+
+    bot.send_message(
+
+        message.chat.id,
+
+        """
+🔍 BUSCAR USUÁRIO
+
+Digite o ID do usuário.
+
+Exemplo:
+
+123456789
+"""
+
+    )
 # ==================================================
 # ADICIONAR SALDO
 # ==================================================
@@ -413,7 +440,51 @@ Exemplo:
 
 20
 """
-    )# ==================================================
+    ) # ===============================================
+# BUSCAR USUÁRIO (ADMIN)
+# ===============================================
+
+    if estado == "BUSCAR_USUARIO":
+
+        try:
+
+            usuario = buscar_usuario_admin(
+
+                int(message.text)
+
+            )
+
+        except ValueError:
+
+            bot.send_message(
+
+                message.chat.id,
+
+                "❌ Digite apenas o ID numérico."
+
+            )
+
+            return
+
+        estados.pop(
+
+            usuario_id,
+
+            None
+
+        )
+
+        bot.send_message(
+
+            message.chat.id,
+
+            texto_usuario_admin(usuario),
+
+            reply_markup=menu_admin_usuarios()
+
+        )
+
+        return # ==================================================
 # CONVIDAR AMIGOS
 # ==================================================
 
