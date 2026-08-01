@@ -47,6 +47,10 @@ from admin_sistema import (
     criar_owner
 )
 
+from admin_menu import (
+    menu_admin_principal
+)
+
 from indicacoes import (
     registrar_indicacao
 )
@@ -220,14 +224,17 @@ def admin(message):
         return
 
     bot.send_message(
-        message.chat.id,
-        """
+    message.chat.id,
+    """
 🛡️ <b>PAINEL ADMINISTRATIVO</b>
 
-Bem-vindo ao painel administrativo.
+Bem-vindo ao Painel Administrativo da
+PITBULL REWARDS PLATFORM.
+
+Escolha uma opção abaixo.
 """,
-        reply_markup=menu_admin()
-    )
+    reply_markup=menu_admin_principal()
+)
 
 
 # ==================================================
