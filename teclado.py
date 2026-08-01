@@ -529,3 +529,51 @@ def menu_tickets():
     )
 
     return menu
+# ==================================================
+# MENU ADMINISTRADORES
+# ==================================================
+
+def menu_administradores():
+
+    teclado = ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        row_width=2
+    )
+
+    teclado.add(
+
+        KeyboardButton("➕ Adicionar Admin"),
+
+        KeyboardButton("📋 Listar Admins")
+
+    )
+
+    teclado.add(
+
+        KeyboardButton("🔍 Buscar Admin"),
+
+        KeyboardButton("📝 Alterar Cargo")
+
+    )
+
+    teclado.add(
+
+        KeyboardButton("🚫 Desativar Admin"),
+
+        KeyboardButton("✅ Ativar Admin")
+
+    )
+
+    teclado.add(
+
+        KeyboardButton("🗑 Remover Admin")
+
+    )
+
+    teclado.add(
+
+        KeyboardButton("⬅️ Voltar")
+
+    )
+
+    return teclado
