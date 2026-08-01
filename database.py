@@ -1,7 +1,7 @@
 """
 ==================================================
 PITBULL REWARDS PLATFORM V3
-Database Oficial
+DATABASE OFICIAL
 ==================================================
 """
 
@@ -9,7 +9,6 @@ import sqlite3
 from datetime import datetime
 
 from config import DATABASE
-
 
 # ==================================================
 # CONEXÃO
@@ -24,68 +23,12 @@ conn.row_factory = sqlite3.Row
 
 cursor = conn.cursor()
 
-
 # ==================================================
-# DATA / HORA
+# DATA/HORA
 # ==================================================
 
 def agora():
     return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
-
-# ==================================================
-# SYSTEM
-# ==================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS system(
-
-    id INTEGER PRIMARY KEY,
-
-    plataforma TEXT,
-
-    versao TEXT,
-
-    database_versao TEXT,
-
-    owner_id INTEGER DEFAULT 0,
-
-    maintenance INTEGER DEFAULT 0,
-
-    emergency INTEGER DEFAULT 0,
-
-    created_at TEXT,
-
-    updated_at TEXT
-
-)
-""")
-
-
-# ==================================================
-# MÓDULOS
-# ==================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS modulos(
-
-    chave TEXT PRIMARY KEY,
-
-    nome TEXT,
-
-    descricao TEXT,
-
-    ativo INTEGER DEFAULT 1,
-
-    editavel INTEGER DEFAULT 1,
-
-    created_at TEXT,
-
-    updated_at TEXT
-
-)
-""")
-
 
 # ==================================================
 # CONFIGURAÇÕES
@@ -102,64 +45,54 @@ CREATE TABLE IF NOT EXISTS configuracoes(
 
     categoria TEXT,
 
-    editavel INTEGER DEFAULT 1,
-
     updated_at TEXT
 
 )
 """)
 
-
-# ==================================================
-# CONFIGURAÇÕES PADRÃO
-# ==================================================
-
 CONFIG_PADRAO = {
 
-    "nome_plataforma": "PITBULL REWARDS PLATFORM",
+    "nome_plataforma":"PITBULL REWARDS PLATFORM",
 
-    "versao": "3.0",
+    "versao":"3.0",
 
-    "grupo_obrigatorio": "1",
+    "grupo_id":"",
 
-    "grupo_id": "",
+    "grupo_link":"",
 
-    "grupo_nome": "",
+    "grupo_nome":"",
 
-    "grupo_link": "",
+    "grupo_obrigatorio":"1",
 
-    "canal_obrigatorio": "0",
+    "canal_id":"",
 
-    "canal_id": "",
+    "canal_link":"",
 
-    "canal_nome": "",
+    "canal_nome":"",
 
-    "canal_link": "",
+    "canal_obrigatorio":"0",
 
-    "valor_indicacao": "1.00",
+    "valor_indicacao":"1.00",
 
-    "valor_minimo_saque": "20.00",
+    "valor_minimo_saque":"20",
 
-    "valor_maximo_saque": "5000.00",
+    "valor_maximo_saque":"5000",
 
-    "pix_obrigatorio": "1",
+    "saque_manual":"1",
 
-    "saque_manual": "1",
+    "pix_obrigatorio":"1",
 
-    "aprovacao_manual": "1",
+    "premium_ativo":"1",
 
-    "premium_ativo": "0",
+    "vip_ativo":"1",
 
-    "vip_ativo": "1",
+    "broadcast_ativo":"1",
 
-    "broadcast_ativo": "1",
+    "tickets_ativo":"1",
 
-    "tickets_ativos": "1",
-
-    "logs_admin": "1"
+    "anti_fraude":"1"
 
 }
-
 
 for chave, valor in CONFIG_PADRAO.items():
 
@@ -181,7 +114,7 @@ for chave, valor in CONFIG_PADRAO.items():
 
     VALUES(?,?,?,?,?)
 
-    """, (
+    """,(
 
         chave,
 
@@ -195,7 +128,7 @@ for chave, valor in CONFIG_PADRAO.items():
 
     ))
 
-conn.commit()# ==================================================
+# ==================================================
 # USUÁRIOS
 # ==================================================
 
@@ -218,11 +151,11 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     banido INTEGER DEFAULT 0,
 
+    aprovado INTEGER DEFAULT 0,
+
     grupo_verificado INTEGER DEFAULT 0,
 
     canal_verificado INTEGER DEFAULT 0,
-
-    aprovado INTEGER DEFAULT 0,
 
     convidado_por INTEGER,
 
@@ -251,8 +184,6 @@ CREATE TABLE IF NOT EXISTS usuarios(
     xp INTEGER DEFAULT 0,
 
     nivel INTEGER DEFAULT 1,
-
-    experiencia_total INTEGER DEFAULT 0,
 
     vip TEXT DEFAULT 'Bronze',
 
@@ -295,97 +226,16 @@ CREATE TABLE IF NOT EXISTS usuarios(
 )
 """)
 
-
-# ==================================================
-# ADMINISTRADORES
-# ==================================================
-
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS administradores(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario_id INTEGER UNIQUE,
-
-    cargo TEXT NOT NULL,
-
-    status TEXT DEFAULT 'ATIVO',
-
-    criado_por INTEGER,
-
-    created_at TEXT,
-
-    updated_at TEXT
-
-)
-""")
-
-
-# ==================================================
-# PERMISSÕES DOS ADMINS
-# ==================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS permissoes(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    admin_id INTEGER,
-
-    permissao TEXT,
-
-    permitido INTEGER DEFAULT 1,
-
-    created_at TEXT
-
-)
-""")
-
-
-# ==================================================
-# LOGS ADMINISTRATIVOS
-# ==================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS logs_admin(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    admin_id INTEGER,
-
-    acao TEXT,
-
-    categoria TEXT,
-
-    usuario_alvo INTEGER,
-
-    referencia TEXT,
-
-    detalhes TEXT,
-
-    created_at TEXT
-
-)
-""")
-
-
-# ==================================================
-# ÍNDICES
-# ==================================================
-
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario_codigo
+CREATE INDEX IF NOT EXISTS idx_codigo
 ON usuarios(codigo)
 """)
 
 cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario_indicador
+CREATE INDEX IF NOT EXISTS idx_indicador
 ON usuarios(convidado_por)
 """)
 
-cursor.execute("""
-CREATE INDEX IF NOT EXISTS idx_usuario_status
-ON usuarios(status)
-""")
-
 conn.commit()
+
+print("✅ Database carregado com sucesso.")
