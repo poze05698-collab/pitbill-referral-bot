@@ -51,6 +51,10 @@ from admin_menu import (
     menu_admin_principal
 )
 
+from admin_usuarios import (
+    menu_admin_usuarios
+)
+
 from indicacoes import (
     registrar_indicacao
 )
@@ -562,7 +566,30 @@ Status:
         message.chat.id,
         texto,
         reply_markup=menu_principal()
-    )# ==================================================
+    ) # ==================================================
+# MENU ADMIN - USUÁRIOS
+# ==================================================
+
+@bot.message_handler(func=lambda msg: msg.text == "👥 Usuários")
+def admin_usuarios_menu(message):
+
+    if not is_admin(message.from_user.id):
+
+        return
+
+    bot.send_message(
+
+        message.chat.id,
+
+        """
+👥 <b>GERENCIAR USUÁRIOS</b>
+
+Escolha uma opção abaixo.
+""",
+
+        reply_markup=menu_admin_usuarios()
+
+    ) # ==================================================
 # GERENCIADOR DE MENSAGENS
 # ==================================================
 
