@@ -42,6 +42,10 @@ from saques import (
     solicitar_saque
 )
 
+from admin_sistema import (
+    criar_owner
+)
+
 from indicacoes import (
     registrar_indicacao
 )
@@ -647,7 +651,14 @@ def iniciar_bot():
 
     print("=" * 50)
     print("🐶 PITBULL REWARDS PLATFORM V3")
+    print("=" * 50)
+
+    criar_owner()
+
+    print("✅ Sistema administrativo carregado.")
+
     print("🚀 Bot iniciado com sucesso!")
+
     print("=" * 50)
 
     bot.infinity_polling(
