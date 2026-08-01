@@ -43,15 +43,14 @@ from saques import (
     solicitar_saque
 )
 
-from admin_sistema import (
+from admin.sistema import (
     criar_owner
 )
-
-from admin_menu import (
+from admin.menu import (
     menu_admin_principal
 )
 
-from admin_usuarios import (
+from admin.usuarios import (
     menu_admin_usuarios,
     buscar_usuario_admin,
     texto_usuario_admin
