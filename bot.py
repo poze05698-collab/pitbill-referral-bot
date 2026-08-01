@@ -14,7 +14,8 @@ from config import (
 
 from teclado import (
     menu_principal,
-    menu_admin
+    menu_admin,
+    menu_administradores
 )
 
 from usuarios import (
