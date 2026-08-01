@@ -1,100 +1,224 @@
 """
 ==================================================
 PITBULL REWARDS PLATFORM V3
-Sistema de Cargos
+Gerenciamento de Administradores
 ==================================================
 """
 
-from database import cursor
+from database import conn, cursor, agora
 
 # ==========================================
-# CARGOS
+# ADICIONAR ADMINISTRADOR
 # ==========================================
 
-OWNER = "OWNER"
-ADMIN = "ADMIN"
-MODERADOR = "MODERADOR"
-SUPORTE = "SUPORTE"
-
-# ==========================================
-# BUSCAR CARGO
-# ==========================================
-
-def obter_cargo(usuario_id):
+def adicionar_administrador(usuario_id, cargo, criado_por):
 
     cursor.execute("""
 
-        SELECT cargo
+        SELECT id
 
-        FROM usuarios
+        FROM administradores
 
-        WHERE id=?
+        WHERE usuario_id=?
 
     """, (usuario_id,))
 
-    usuario = cursor.fetchone()
+    if cursor.fetchone():
 
-    if usuario is None:
+        return False, "Este usuário já é administrador."
 
-        return None
+    cursor.execute("""
 
-    cargo = usuario["cargo"]
+        INSERT INTO administradores(
 
-    if cargo is None:
+            usuario_id,
 
-        return None
+            cargo,
 
-    return cargo
+            status,
+
+            criado_por,
+
+            created_at,
+
+            updated_at
+
+        )
+
+        VALUES(
+
+            ?,?,?,?,?,?
+
+        )
+
+    """, (
+
+        usuario_id,
+
+        cargo,
+
+        "ATIVO",
+
+        criado_por,
+
+        agora(),
+
+        agora()
+
+    ))
+
+    conn.commit()
+
+    return True, "Administrador adicionado com sucesso."
+
 
 # ==========================================
-# VERIFICAR CARGO
+# LISTAR ADMINISTRADORES
 # ==========================================
 
-def is_owner(usuario_id):
+def listar_administradores():
 
-    return obter_cargo(usuario_id) == OWNER
+    cursor.execute("""
 
+        SELECT *
 
-def is_admin(usuario_id):
+        FROM administradores
 
-    cargo = obter_cargo(usuario_id)
+        ORDER BY cargo, usuario_id
 
-    return cargo in [
+    """)
 
-        OWNER,
-
-        ADMIN
-
-    ]
+    return cursor.fetchall()
 
 
-def is_moderador(usuario_id):
+# ==========================================
+# BUSCAR ADMINISTRADOR
+# ==========================================
 
-    cargo = obter_cargo(usuario_id)
+def buscar_administrador(usuario_id):
 
-    return cargo in [
+    cursor.execute("""
 
-        OWNER,
+        SELECT *
 
-        ADMIN,
+        FROM administradores
 
-        MODERADOR
+        WHERE usuario_id=?
 
-    ]
+    """, (usuario_id,))
+
+    return cursor.fetchone()
 
 
-def is_suporte(usuario_id):
+# ==========================================
+# REMOVER ADMINISTRADOR
+# ==========================================
 
-    cargo = obter_cargo(usuario_id)
+def remover_administrador(usuario_id):
 
-    return cargo in [
+    cursor.execute("""
 
-        OWNER,
+        DELETE FROM administradores
 
-        ADMIN,
+        WHERE usuario_id=?
 
-        MODERADOR,
+    """, (usuario_id,))
 
-        SUPORTE
+    conn.commit()
 
-    ]
+    return True
+
+
+# ==========================================
+# ALTERAR CARGO
+# ==========================================
+
+def alterar_cargo(usuario_id, novo_cargo):
+
+    cursor.execute("""
+
+        UPDATE administradores
+
+        SET
+
+            cargo=?,
+
+            updated_at=?
+
+        WHERE usuario_id=?
+
+    """, (
+
+        novo_cargo,
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    return True
+
+
+# ==========================================
+# ATIVAR ADMINISTRADOR
+# ==========================================
+
+def ativar_administrador(usuario_id):
+
+    cursor.execute("""
+
+        UPDATE administradores
+
+        SET
+
+            status='ATIVO',
+
+            updated_at=?
+
+        WHERE usuario_id=?
+
+    """, (
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    return True
+
+
+# ==========================================
+# DESATIVAR ADMINISTRADOR
+# ==========================================
+
+def desativar_administrador(usuario_id):
+
+    cursor.execute("""
+
+        UPDATE administradores
+
+        SET
+
+            status='INATIVO',
+
+            updated_at=?
+
+        WHERE usuario_id=?
+
+    """, (
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    return True
