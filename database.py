@@ -463,12 +463,14 @@ CREATE TABLE IF NOT EXISTS usuarios(
     updated_at TEXT
 
 )
+
+""")
+
 # ==================================================
 # ADMINISTRADORES
 # ==================================================
 
 cursor.execute("""
-
 CREATE TABLE IF NOT EXISTS administradores(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
