@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     id INTEGER PRIMARY KEY,
 
-    codigo TEXT UNIQUE,
+    codigo TEXT UNIQUE NOT NULL,
 
     nome TEXT NOT NULL,
 
@@ -96,33 +96,7 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     aprovado INTEGER DEFAULT 0,
 
-    grupo_verificado INTEGER DEFAULT 0,
-
-    canal_verificado INTEGER DEFAULT 0,
-
     convidado_por INTEGER,
-
-    indicados INTEGER DEFAULT 0,
-
-    indicacoes_pendentes INTEGER DEFAULT 0,
-
-    indicacoes_aprovadas INTEGER DEFAULT 0,
-
-    indicacoes_rejeitadas INTEGER DEFAULT 0,
-
-    saldo REAL DEFAULT 0,
-
-    saldo_pendente REAL DEFAULT 0,
-
-    saldo_bloqueado REAL DEFAULT 0,
-
-    total_ganho REAL DEFAULT 0,
-
-    total_sacado REAL DEFAULT 0,
-
-    total_indicacoes REAL DEFAULT 0,
-
-    pix TEXT,
 
     xp INTEGER DEFAULT 0,
 
@@ -130,39 +104,15 @@ CREATE TABLE IF NOT EXISTS usuarios(
 
     experiencia_total INTEGER DEFAULT 0,
 
-    vip TEXT DEFAULT 'Bronze',
+    notificacoes INTEGER DEFAULT 1,
 
-    premium INTEGER DEFAULT 0,
-
-    premium_expira TEXT,
-
-    premium_multiplicador REAL DEFAULT 1,
-
-    streak INTEGER DEFAULT 0,
-
-    ultimo_bonus TEXT,
-
-    ultima_roleta TEXT,
-
-    ultima_raspadinha TEXT,
+    criado_por_admin INTEGER DEFAULT 0,
 
     ultimo_login TEXT,
 
     ultimo_ip TEXT,
 
     ultimo_dispositivo TEXT,
-
-    tickets_abertos INTEGER DEFAULT 0,
-
-    notificacoes INTEGER DEFAULT 1,
-
-    inventario INTEGER DEFAULT 0,
-
-    baus INTEGER DEFAULT 0,
-
-    jackpot INTEGER DEFAULT 0,
-
-    criado_por_admin INTEGER DEFAULT 0,
 
     created_at TEXT,
 
