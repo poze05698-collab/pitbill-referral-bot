@@ -664,3 +664,83 @@ def confirmar_saldo_bloqueado(
     )
 
     return True
+
+# ==================================================
+# ADICIONAR SALDO PENDENTE
+# ==================================================
+
+def adicionar_saldo_pendente(
+
+    usuario_id,
+    valor,
+    categoria="GERAL",
+    descricao="",
+    admin_id=None
+
+):
+
+    if valor <= 0:
+        return False
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    saldo_pendente_anterior = float(carteira["saldo_pendente"])
+
+    saldo_pendente_novo = saldo_pendente_anterior + valor
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo_pendente=?,
+
+        total_indicacoes=total_indicacoes+?,
+
+        updated_at=?,
+
+        ultima_movimentacao=?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        saldo_pendente_novo,
+
+        valor,
+
+        agora(),
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    registrar_extrato(
+
+        usuario_id=usuario_id,
+
+        tipo="ENTRADA",
+
+        categoria=categoria,
+
+        valor=valor,
+
+        saldo_anterior=saldo_pendente_anterior,
+
+        saldo_atual=saldo_pendente_novo,
+
+        descricao=descricao,
+
+        admin_id=admin_id
+
+    )
+
+    return True
