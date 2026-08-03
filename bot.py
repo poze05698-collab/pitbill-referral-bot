@@ -19,14 +19,19 @@ from teclado import (
 )
 
 from usuarios import (
-    usuario_existe,
+
     cadastrar_usuario,
+
     atualizar_usuario,
-    atualizar_login,
-    buscar_usuario,
-    perfil,
-    saldo,
-    adicionar_saldo
+
+    obter_usuario,
+
+    obter_link_convite,
+
+    registrar_indicacao,
+
+    texto_perfil
+
 )
 
 from carteira import (
@@ -155,9 +160,13 @@ Escolha uma opção abaixo.
 @bot.message_handler(commands=["start"])
 def start(message):
 
-    usuario = verificar_cadastro(message)
+    cadastrar_usuario(message.from_user)
 
-    args = message.text.split()
+    atualizar_usuario(message.from_user)
+
+    usuario = obter_usuario(message.from_user.id)
+
+        args = message.text.split()
 
     if len(args) > 1:
 
@@ -170,22 +179,26 @@ def start(message):
                 ""
             )
 
-            cursor.execute(
-                """
-                SELECT id
-                FROM usuarios
-                WHERE codigo=?
-                """,
-                (codigo,)
-            )
+            cursor.execute("""
+
+            SELECT id
+
+            FROM usuarios
+
+            WHERE codigo=?
+
+            """,(codigo,))
 
             indicador = cursor.fetchone()
 
             if indicador:
 
                 registrar_indicacao(
+
                     indicador["id"],
+
                     message.from_user.id
+
                 )
 
     enviar_menu(
