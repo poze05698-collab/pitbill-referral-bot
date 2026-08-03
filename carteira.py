@@ -586,3 +586,81 @@ def possui_pendente(usuario_id):
 def possui_bloqueado(usuario_id):
 
     return saldo_bloqueado(usuario_id) > 0
+
+# ==================================================
+# CONFIRMAR SAQUE
+# ==================================================
+
+def confirmar_saldo_bloqueado(
+
+    usuario_id,
+    valor,
+    categoria="SAQUE",
+    descricao="",
+    admin_id=None
+
+):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    bloqueado = float(carteira["saldo_bloqueado"])
+
+    if bloqueado < valor:
+        return False
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo_bloqueado = saldo_bloqueado - ?,
+
+        total_saques = total_saques + ?,
+
+        updated_at = ?,
+
+        ultima_movimentacao = ?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        valor,
+
+        valor,
+
+        agora(),
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    registrar_extrato(
+
+        usuario_id=usuario_id,
+
+        tipo="SAIDA",
+
+        categoria=categoria,
+
+        valor=valor,
+
+        saldo_anterior=float(carteira["saldo"]),
+
+        saldo_atual=float(carteira["saldo"]),
+
+        descricao=descricao,
+
+        admin_id=admin_id
+
+    )
+
+    return True
