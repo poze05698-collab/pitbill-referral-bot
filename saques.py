@@ -19,7 +19,7 @@ from carteira import (
 
     desbloquear_saldo,
 
-    remover_saldo,
+    confirmar_saldo_bloqueado,
 
     registrar_extrato
 
@@ -314,19 +314,19 @@ def pagar_saque(saque_id, admin_id):
     if saque["status"] != "APROVADO":
         return False, "❌ O saque precisa estar aprovado."
 
-    remover_saldo(
+    confirmar_saldo_bloqueado(
 
-        usuario_id=saque["usuario_id"],
+    usuario_id=saque["usuario_id"],
 
-        valor=saque["valor"],
+    valor=saque["valor"],
 
-        categoria="SAQUE",
+    categoria="SAQUE",
 
-        descricao=f"Saque #{saque_id}",
+    descricao=f"Saque #{saque_id}",
 
-        admin_id=admin_id
+    admin_id=admin_id
 
-    )
+)
 
     cursor.execute("""
 
