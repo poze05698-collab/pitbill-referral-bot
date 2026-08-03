@@ -20,6 +20,14 @@ from teclado import (
 
 from usuarios import (
 
+    ...
+
+    enviar_menu
+
+)
+
+from usuarios import (
+
     cadastrar_usuario,
 
     atualizar_usuario,
@@ -201,11 +209,17 @@ def start(message):
 
                 )
 
-    enviar_menu(
-        message.chat.id,
-        usuario
-    )
+    usuario = obter_usuario(message.from_user.id)
 
+enviar_menu(
+
+    bot,
+
+    message.chat.id,
+
+    usuario
+
+)
 
 # ==================================================
 # MENU PRINCIPAL
