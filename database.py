@@ -286,10 +286,6 @@ ON pix(chave)
 # SAQUES
 # =====================================================
 
-# =====================================================
-# SAQUES
-# =====================================================
-
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS saques(
 
@@ -597,38 +593,30 @@ CREATE TABLE IF NOT EXISTS grupo(
 
     usuario_id INTEGER PRIMARY KEY,
 
+    grupo_id TEXT,
+
+    grupo_nome TEXT,
+
     entrou INTEGER DEFAULT 0,
 
     verificado INTEGER DEFAULT 0,
 
     data_entrada TEXT,
 
-    data_verificacao TEXT
+    data_verificacao TEXT,
+
+    ultima_consulta TEXT,
+
+    FOREIGN KEY(usuario_id)
+    REFERENCES usuarios(id)
 
 )
 """)
-
-
-# =====================================================
-# CANAL
-# =====================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS canal(
-
-    usuario_id INTEGER PRIMARY KEY,
-
-    entrou INTEGER DEFAULT 0,
-
-    verificado INTEGER DEFAULT 0,
-
-    data_entrada TEXT,
-
-    data_verificacao TEXT
-
-)
+CREATE INDEX IF NOT EXISTS idx_grupo_usuario
+ON grupo(usuario_id)
 """)
-
 
 # =====================================================
 # ANTI FRAUDE
@@ -637,9 +625,7 @@ CREATE TABLE IF NOT EXISTS canal(
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS antifraude(
 
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    usuario_id INTEGER,
+    usuario_id INTEGER PRIMARY KEY,
 
     ip TEXT,
 
@@ -649,13 +635,40 @@ CREATE TABLE IF NOT EXISTS antifraude(
 
     score INTEGER DEFAULT 100,
 
+    contas_mesmo_ip INTEGER DEFAULT 0,
+
+    contas_mesmo_dispositivo INTEGER DEFAULT 0,
+
+    vpn INTEGER DEFAULT 0,
+
+    proxy INTEGER DEFAULT 0,
+
+    emulador INTEGER DEFAULT 0,
+
     suspeito INTEGER DEFAULT 0,
 
     motivo TEXT,
 
-    created_at TEXT
+    ultima_analise TEXT,
+
+    created_at TEXT,
+
+    updated_at TEXT,
+
+    FOREIGN KEY(usuario_id)
+    REFERENCES usuarios(id)
 
 )
+""")
+
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_antifraude_usuario
+ON antifraude(usuario_id)
+""")
+
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_antifraude_score
+ON antifraude(score)
 """)
 
 
@@ -848,29 +861,28 @@ CREATE TABLE IF NOT EXISTS bonus_diario(
 
 
 # =====================================================
-# TICKETS
+# BROADCAST
 # =====================================================
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS tickets(
+CREATE TABLE IF NOT EXISTS broadcast(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    usuario_id INTEGER,
-
-    assunto TEXT,
+    admin_id INTEGER,
 
     mensagem TEXT,
 
-    status TEXT DEFAULT 'ABERTO',
+    usuarios_enviados INTEGER DEFAULT 0,
 
-    admin_id INTEGER,
+    usuarios_recebidos INTEGER DEFAULT 0,
 
-    resposta TEXT,
+    status TEXT DEFAULT 'PENDENTE',
 
     created_at TEXT,
 
-    updated_at TEXT
+    FOREIGN KEY(admin_id)
+    REFERENCES administradores(usuario_id)
 
 )
 """)
@@ -889,16 +901,23 @@ CREATE TABLE IF NOT EXISTS broadcast(
 
     mensagem TEXT,
 
-    enviados INTEGER DEFAULT 0,
+    usuarios_enviados INTEGER DEFAULT 0,
 
-    created_at TEXT
+    usuarios_recebidos INTEGER DEFAULT 0,
+
+    status TEXT DEFAULT 'PENDENTE',
+
+    created_at TEXT,
+
+    FOREIGN KEY(admin_id)
+    REFERENCES administradores(usuario_id)
 
 )
 """)
 
 
 # =====================================================
-# LOGS GERAIS
+# LOGS
 # =====================================================
 
 cursor.execute("""
@@ -906,19 +925,40 @@ CREATE TABLE IF NOT EXISTS logs(
 
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    categoria TEXT,
-
     usuario_id INTEGER,
 
     admin_id INTEGER,
 
+    categoria TEXT,
+
+    acao TEXT,
+
     descricao TEXT,
 
-    created_at TEXT
+    ip TEXT,
+
+    dispositivo TEXT,
+
+    created_at TEXT,
+
+    FOREIGN KEY(usuario_id)
+    REFERENCES usuarios(id),
+
+    FOREIGN KEY(admin_id)
+    REFERENCES administradores(usuario_id)
 
 )
 """)
 
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_logs_usuario
+ON logs(usuario_id)
+""")
+
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_logs_admin
+ON logs(admin_id)
+""")
 
 # =====================================================
 # ESTATÍSTICAS
@@ -951,7 +991,7 @@ VALUES
 
 conn.commit()
 
-print("="*60)
+print("=" * 60)
 print("🐶 PITBULL REWARDS PLATFORM V3")
 print("✅ Database carregado com sucesso.")
-print("="*60)
+print("=" * 60)
