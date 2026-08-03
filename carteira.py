@@ -1,40 +1,551 @@
 """
 ==================================================
- PITBULL REWARDS PLATFORM V3
- carteira.py
+PITBULL REWARDS PLATFORM V3
+CARTEIRA
 ==================================================
 """
 
-from database import cursor
-from usuarios import buscar_usuario
+from database import (
+    conn,
+    cursor,
+    agora
+)
 
 # ==================================================
-# RESUMO DA CARTEIRA
+# OBTER CARTEIRA
 # ==================================================
 
-def resumo_carteira(usuario_id):
+def obter_carteira(usuario_id):
 
-    usuario = buscar_usuario(usuario_id)
+    cursor.execute("""
+    SELECT *
+    FROM carteira
+    WHERE usuario_id=?
+    """,(usuario_id,))
 
-    if usuario is None:
-        return None
+    return cursor.fetchone()
 
-    return {
-        "saldo": float(usuario["saldo"]),
-        "saldo_pendente": float(usuario["saldo_pendente"]),
-        "saldo_bloqueado": float(usuario["saldo_bloqueado"]),
-        "total_ganho": float(usuario["total_ganho"]),
-        "total_sacado": float(usuario["total_sacado"])
-    }
 
 # ==================================================
-# EXTRATO
+# SALDO
 # ==================================================
 
-def extrato(usuario_id, limite=10):
+def saldo(usuario_id):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return 0
+
+    return float(carteira["saldo"])
+
+
+# ==================================================
+# SALDO PENDENTE
+# ==================================================
+
+def saldo_pendente(usuario_id):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return 0
+
+    return float(carteira["saldo_pendente"])
+
+
+# ==================================================
+# SALDO BLOQUEADO
+# ==================================================
+
+def saldo_bloqueado(usuario_id):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return 0
+
+    return float(carteira["saldo_bloqueado"])# ==================================================
+# ADICIONAR SALDO
+# ==================================================
+
+def adicionar_saldo(
+
+    usuario_id,
+    valor,
+    categoria="GERAL",
+    descricao="",
+    admin_id=None
+
+):
+
+    if valor <= 0:
+        return False
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    saldo_anterior = float(carteira["saldo"])
+
+    saldo_novo = saldo_anterior + valor
 
     cursor.execute("""
 
+    UPDATE carteira
+
+    SET
+
+        saldo=?,
+
+        total_recebido=total_recebido+?,
+
+        updated_at=?,
+
+        ultima_movimentacao=?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        saldo_novo,
+
+        valor,
+
+        agora(),
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    registrar_extrato(
+
+        usuario_id=usuario_id,
+
+        tipo="ENTRADA",
+
+        categoria=categoria,
+
+        valor=valor,
+
+        saldo_anterior=saldo_anterior,
+
+        saldo_atual=saldo_novo,
+
+        descricao=descricao,
+
+        admin_id=admin_id
+
+    )
+
+    return True
+
+
+# ==================================================
+# REMOVER SALDO
+# ==================================================
+
+def remover_saldo(
+
+    usuario_id,
+    valor,
+    categoria="GERAL",
+    descricao="",
+    admin_id=None
+
+):
+
+    if valor <= 0:
+        return False
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    saldo_anterior = float(carteira["saldo"])
+
+    if saldo_anterior < valor:
+        return False
+
+    saldo_novo = saldo_anterior - valor
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo=?,
+
+        total_gasto=total_gasto+?,
+
+        updated_at=?,
+
+        ultima_movimentacao=?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        saldo_novo,
+
+        valor,
+
+        agora(),
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    registrar_extrato(
+
+        usuario_id=usuario_id,
+
+        tipo="SAIDA",
+
+        categoria=categoria,
+
+        valor=valor,
+
+        saldo_anterior=saldo_anterior,
+
+        saldo_atual=saldo_novo,
+
+        descricao=descricao,
+
+        admin_id=admin_id
+
+    )
+
+    return True# ==================================================
+# REGISTRAR EXTRATO
+# ==================================================
+
+def registrar_extrato(
+
+    usuario_id,
+    tipo,
+    categoria,
+    valor,
+    saldo_anterior,
+    saldo_atual,
+    descricao="",
+    referencia_id=None,
+    referencia_tabela=None,
+    admin_id=None
+
+):
+
+    cursor.execute("""
+
+    INSERT INTO extrato(
+
+        usuario_id,
+
+        tipo,
+
+        categoria,
+
+        valor,
+
+        saldo_anterior,
+
+        saldo_atual,
+
+        descricao,
+
+        referencia_id,
+
+        referencia_tabela,
+
+        admin_id,
+
+        created_at
+
+    )
+
+    VALUES(?,?,?,?,?,?,?,?,?,?,?)
+
+    """,(
+
+        usuario_id,
+
+        tipo,
+
+        categoria,
+
+        valor,
+
+        saldo_anterior,
+
+        saldo_atual,
+
+        descricao,
+
+        referencia_id,
+
+        referencia_tabela,
+
+        admin_id,
+
+        agora()
+
+    ))
+
+    conn.commit()
+
+
+# ==================================================
+# BLOQUEAR SALDO
+# ==================================================
+
+def bloquear_saldo(usuario_id, valor):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    saldo = float(carteira["saldo"])
+
+    if saldo < valor:
+        return False
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo = saldo - ?,
+
+        saldo_bloqueado = saldo_bloqueado + ?,
+
+        updated_at = ?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        valor,
+
+        valor,
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    return True
+
+
+# ==================================================
+# DESBLOQUEAR SALDO
+# ==================================================
+
+def desbloquear_saldo(usuario_id, valor):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    bloqueado = float(carteira["saldo_bloqueado"])
+
+    if bloqueado < valor:
+        return False
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo = saldo + ?,
+
+        saldo_bloqueado = saldo_bloqueado - ?,
+
+        updated_at = ?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        valor,
+
+        valor,
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    return True
+
+
+# ==================================================
+# PENDENTE → SALDO
+# ==================================================
+
+def transferir_pendente_para_saldo(usuario_id):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+        return False
+
+    pendente = float(carteira["saldo_pendente"])
+
+    if pendente <= 0:
+        return False
+
+    saldo_anterior = float(carteira["saldo"])
+
+    saldo_novo = saldo_anterior + pendente
+
+    cursor.execute("""
+
+    UPDATE carteira
+
+    SET
+
+        saldo=?,
+
+        saldo_pendente=0,
+
+        updated_at=?,
+
+        ultima_movimentacao=?
+
+    WHERE usuario_id=?
+
+    """,(
+
+        saldo_novo,
+
+        agora(),
+
+        agora(),
+
+        usuario_id
+
+    ))
+
+    conn.commit()
+
+    registrar_extrato(
+
+        usuario_id=usuario_id,
+
+        tipo="ENTRADA",
+
+        categoria="INDICACAO",
+
+        valor=pendente,
+
+        saldo_anterior=saldo_anterior,
+
+        saldo_atual=saldo_novo,
+
+        descricao="Saldo pendente aprovado"
+
+    )
+
+    return True# ==================================================
+# TEXTO DA CARTEIRA
+# ==================================================
+
+def texto_carteira(usuario_id):
+
+    carteira = obter_carteira(usuario_id)
+
+    if carteira is None:
+
+        return "❌ Carteira não encontrada."
+
+    cursor.execute("""
+    SELECT COUNT(*) total
+    FROM extrato
+    WHERE usuario_id=?
+    """,(usuario_id,))
+
+    total_mov = cursor.fetchone()["total"]
+
+    texto = f"""
+💰 <b>CARTEIRA</b>
+
+━━━━━━━━━━━━━━━━━━
+
+💵 Saldo Disponível
+
+R$ {float(carteira["saldo"]):.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+⏳ Saldo Pendente
+
+R$ {float(carteira["saldo_pendente"]):.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+🔒 Saldo Bloqueado
+
+R$ {float(carteira["saldo_bloqueado"]):.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+📥 Total Recebido
+
+R$ {float(carteira["total_recebido"]):.2f}
+
+📤 Total Gasto
+
+R$ {float(carteira["total_gasto"]):.2f}
+
+🎁 Total Indicações
+
+R$ {float(carteira["total_indicacoes"]):.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+📄 Movimentações
+
+{total_mov}
+
+━━━━━━━━━━━━━━━━━━
+
+🕒 Última movimentação
+
+{carteira["ultima_movimentacao"] or "Nenhuma"}
+
+"""
+
+    return texto
+
+
+# ==================================================
+# HISTÓRICO RESUMIDO
+# ==================================================
+
+def historico_resumido(usuario_id, limite=10):
+
+    cursor.execute("""
     SELECT *
 
     FROM extrato
@@ -45,99 +556,33 @@ def extrato(usuario_id, limite=10):
 
     LIMIT ?
 
-    """, (
-
-        usuario_id,
-
-        limite
-
-    ))
-
-    return cursor.fetchall()# ==================================================
-# ÚLTIMAS MOVIMENTAÇÕES
-# ==================================================
-
-def ultimas_movimentacoes(usuario_id, limite=5):
-
-    cursor.execute("""
-
-    SELECT
-
-        tipo,
-        categoria,
-        valor,
-        descricao,
-        created_at
-
-    FROM extrato
-
-    WHERE usuario_id=?
-
-    ORDER BY id DESC
-
-    LIMIT ?
-
-    """, (
-
-        usuario_id,
-        limite
-
-    ))
+    """,(usuario_id, limite))
 
     return cursor.fetchall()
 
 
 # ==================================================
-# MENSAGEM DA CARTEIRA
+# TEM SALDO?
 # ==================================================
 
-def texto_carteira(usuario_id):
+def possui_saldo(usuario_id, valor):
 
-    dados = resumo_carteira(usuario_id)
+    return saldo(usuario_id) >= valor
 
-    if dados is None:
 
-        return "❌ Carteira não encontrada."
+# ==================================================
+# TEM SALDO PENDENTE?
+# ==================================================
 
-    texto = f"""
-💰 <b>MINHA CARTEIRA</b>
+def possui_pendente(usuario_id):
 
-━━━━━━━━━━━━━━━━━━
+    return saldo_pendente(usuario_id) > 0
 
-💵 Saldo disponível:
-R$ {dados['saldo']:.2f}
 
-⏳ Saldo pendente:
-R$ {dados['saldo_pendente']:.2f}
+# ==================================================
+# TEM SALDO BLOQUEADO?
+# ==================================================
 
-🔒 Saldo bloqueado:
-R$ {dados['saldo_bloqueado']:.2f}
+def possui_bloqueado(usuario_id):
 
-📈 Total ganho:
-R$ {dados['total_ganho']:.2f}
-
-📉 Total sacado:
-R$ {dados['total_sacado']:.2f}
-
-━━━━━━━━━━━━━━━━━━
-
-📄 Últimas movimentações:
-
-"""
-
-    movimentacoes = ultimas_movimentacoes(usuario_id)
-
-    if not movimentacoes:
-
-        texto += "\nNenhuma movimentação encontrada."
-
-    else:
-
-        for mov in movimentacoes:
-
-            texto += (
-                f"\n• {mov['categoria']} | "
-                f"R$ {mov['valor']:.2f}"
-            )
-
-    return texto
+    return saldo_bloqueado(usuario_id) > 0
