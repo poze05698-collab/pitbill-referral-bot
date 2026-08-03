@@ -261,3 +261,162 @@ def rejeitar_indicacao(indicado_id, admin_id, motivo=""):
     conn.commit()
 
     return True, "✅ Indicação rejeitada."
+
+# ==================================================
+# LISTAR INDICADOS
+# ==================================================
+
+def listar_indicados(indicador_id):
+
+    cursor.execute("""
+
+    SELECT
+
+        u.id,
+
+        u.nome,
+
+        u.username,
+
+        i.status,
+
+        i.recompensa,
+
+        i.data_cadastro,
+
+        i.data_aprovacao
+
+    FROM indicacoes i
+
+    INNER JOIN usuarios u
+
+        ON u.id=i.indicado_id
+
+    WHERE i.indicador_id=?
+
+    ORDER BY i.id DESC
+
+    """,(indicador_id,))
+
+    return cursor.fetchall()
+
+
+# ==================================================
+# TOTAL DE INDICAÇÕES
+# ==================================================
+
+def total_indicacoes(indicador_id):
+
+    cursor.execute("""
+
+    SELECT COUNT(*) total
+
+    FROM indicacoes
+
+    WHERE indicador_id=?
+
+    """,(indicador_id,))
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# TOTAL APROVADAS
+# ==================================================
+
+def total_aprovadas(indicador_id):
+
+    cursor.execute("""
+
+    SELECT COUNT(*) total
+
+    FROM indicacoes
+
+    WHERE indicador_id=?
+
+    AND status='APROVADA'
+
+    """,(indicador_id,))
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# TOTAL PENDENTES
+# ==================================================
+
+def total_pendentes(indicador_id):
+
+    cursor.execute("""
+
+    SELECT COUNT(*) total
+
+    FROM indicacoes
+
+    WHERE indicador_id=?
+
+    AND status='PENDENTE'
+
+    """,(indicador_id,))
+
+    return cursor.fetchone()["total"]
+
+
+# ==================================================
+# TOTAL REJEITADAS
+# ==================================================
+
+def total_rejeitadas(indicador_id):
+
+    cursor.execute("""
+
+    SELECT COUNT(*) total
+
+    FROM indicacoes
+
+    WHERE indicador_id=?
+
+    AND status='REJEITADA'
+
+    """,(indicador_id,))
+
+    return cursor.fetchone()["total"]
+    # ==================================================
+# TEXTO DAS INDICAÇÕES
+# ==================================================
+
+def texto_indicacoes(usuario_id):
+
+    total = total_indicacoes(usuario_id)
+
+    aprovadas = total_aprovadas(usuario_id)
+
+    pendentes = total_pendentes(usuario_id)
+
+    rejeitadas = total_rejeitadas(usuario_id)
+
+    texto = f"""
+👥 <b>MINHAS INDICAÇÕES</b>
+
+━━━━━━━━━━━━━━━━━━
+
+👤 Total
+
+{total}
+
+✅ Aprovadas
+
+{aprovadas}
+
+⏳ Pendentes
+
+{pendentes}
+
+❌ Rejeitadas
+
+{rejeitadas}
+
+━━━━━━━━━━━━━━━━━━
+"""
+
+    return texto
