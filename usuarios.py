@@ -391,7 +391,8 @@ def registrar_indicacao(indicador_id, indicado_id):
 
     conn.commit()
 
-    return True# =====================================================
+    return True
+    # =====================================================
 # LINK DE CONVITE
 # =====================================================
 
@@ -468,3 +469,90 @@ def indicacoes_aprovadas(usuario_id):
     """,(usuario_id,))
 
     return cursor.fetchone()["total"]
+    # =====================================================
+# MENU PRINCIPAL
+# =====================================================
+
+def menu_principal():
+
+    menu = InlineKeyboardMarkup(row_width=2)
+
+    menu.add(
+
+        InlineKeyboardButton(
+            "👤 Perfil",
+            callback_data="perfil"
+        ),
+
+        InlineKeyboardButton(
+            "💰 Carteira",
+            callback_data="carteira"
+        )
+
+    )
+
+    menu.add(
+
+        InlineKeyboardButton(
+            "👥 Indicados",
+            callback_data="indicados"
+        ),
+
+        InlineKeyboardButton(
+            "🔗 Meu Link",
+            callback_data="meulink"
+        )
+
+    )
+
+    menu.add(
+
+        InlineKeyboardButton(
+            "💳 PIX",
+            callback_data="pix"
+        ),
+
+        InlineKeyboardButton(
+            "💸 Solicitar Saque",
+            callback_data="saque"
+        )
+
+    )
+
+    menu.add(
+
+        InlineKeyboardButton(
+            "📜 Histórico",
+            callback_data="historico"
+        )
+
+    )
+
+    return menu
+    # =====================================================
+# ENVIAR MENU
+# =====================================================
+
+def enviar_menu(bot, chat_id, usuario):
+
+    texto = f"""
+🐶 <b>{NOME_BOT}</b>
+
+Olá, <b>{usuario['nome']}</b>!
+
+Bem-vindo à plataforma.
+
+Escolha uma opção abaixo.
+"""
+
+    bot.send_message(
+
+        chat_id,
+
+        texto,
+
+        parse_mode="HTML",
+
+        reply_markup=menu_principal()
+
+    )
