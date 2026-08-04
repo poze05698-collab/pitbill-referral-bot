@@ -106,9 +106,11 @@ def cadastrar_usuario(user):
 
     )
 
-    conn.commit()
+        conn.commit()
 
-criar_estrutura_usuario(user.id)
+    criar_estrutura_usuario(user.id)
+
+    return True
 # =====================================================
 # ATUALIZAR USUÁRIO
 # =====================================================
