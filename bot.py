@@ -82,6 +82,46 @@ def limpar_cache(chave):
 
     cache.pop(chave, None)
 
+# ==================================================
+# PROCESSAR ESTADOS
+# ==================================================
+
+@bot.message_handler(func=lambda message: True)
+def processar_estados(message):
+
+    estado = obter_estado(
+        message.from_user.id
+    )
+
+    # ------------------------------------------
+    # AGUARDANDO VALOR DO SAQUE
+    # ------------------------------------------
+
+    if estado == "AGUARDANDO_VALOR_SAQUE":
+
+        limpar_estado(
+            message.from_user.id
+        )
+
+        resposta = saques.solicitar_saque(
+
+            usuario_id=message.from_user.id,
+
+            valor=message.text
+
+        )
+
+        bot.send_message(
+
+            message.chat.id,
+
+            resposta,
+
+            reply_markup=teclado.menu_saques()
+
+        )
+
+        return
 
 # ==================================================
 # INICIAR BOT
@@ -318,16 +358,111 @@ def menu_pix(message):
 @bot.message_handler(func=lambda message: message.text == "💸 Solicitar Saque")
 def menu_saque(message):
 
+    texto = saques.texto_saques(
+        message.from_user.id
+    )
+
     bot.send_message(
 
         message.chat.id,
 
-        "💸 Área de Saques",
+        texto,
 
         reply_markup=teclado.menu_saques()
 
     )
 
+# ==================================================
+# NOVO SAQUE
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "💸 Novo Saque")
+def novo_saque(message):
+
+    definir_estado(
+        message.from_user.id,
+        "AGUARDANDO_VALOR_SAQUE"
+    )
+
+    bot.send_message(
+
+        message.chat.id,
+
+        """
+💸 Informe o valor do saque.
+
+Exemplo:
+
+20
+50
+100
+"""
+
+    )
+
+
+# ==================================================
+# HISTÓRICO
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "📜 Histórico")
+def historico_saques(message):
+
+    lista = saques.listar_saques(
+        message.from_user.id
+    )
+
+    if not lista:
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "Você ainda não possui saques."
+
+        )
+
+        return
+
+    texto = "📜 <b>HISTÓRICO DE SAQUES</b>\n\n"
+
+    for saque in lista[:10]:
+
+        texto += saques.texto_saque(
+            saque
+        )
+
+        texto += "\n"
+
+    bot.send_message(
+
+        message.chat.id,
+
+        texto
+
+    )
+
+
+# ==================================================
+# VOLTAR CARTEIRA
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "⬅️ Carteira")
+def voltar_carteira(message):
+
+    texto = carteira.texto_carteira(
+        message.from_user.id
+    )
+
+    bot.send_message(
+
+        message.chat.id,
+
+        texto,
+
+        reply_markup=teclado.menu_carteira()
+
+    )
 
 # ==================================================
 # MENU PRINCIPAL
