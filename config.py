@@ -64,3 +64,9 @@ DATE_FORMAT = "%d/%m/%Y"
 DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S"
 
 TIMEZONE = "America/Sao_Paulo"
+
+# ==================================================
+# COMPATIBILIDADE
+# ==================================================
+
+NOME_BOT = BOT_NAME
