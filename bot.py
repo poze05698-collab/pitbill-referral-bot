@@ -1,13 +1,23 @@
 """
 ==================================================
-PITBULL REWARDS PLATFORM V3
-BOT PRINCIPAL
+ PITBULL REWARDS PLATFORM V3
+ BOT PRINCIPAL
 ==================================================
 """
+
+# ==================================================
+# IMPORTS
+# ==================================================
 
 import telebot
 
 from config import TOKEN
+
+from database import (
+    cursor
+)
+
+import teclado
 
 import usuarios
 import carteira
@@ -15,43 +25,29 @@ import pix
 import saques
 import indicacoes
 
-import grupo
-import estado
-import teclado
-import utils
-
-from admin import menu as admin_menu
-from admin import usuarios as admin_usuarios
-from admin import saques as admin_saques
-from admin import indicacoes as admin_indicacoes
-from admin import estatisticas as admin_estatisticas
-from admin import broadcast as admin_broadcast
-
-# =====================================================
+# ==================================================
 # BOT
-# =====================================================
+# ==================================================
 
 bot = telebot.TeleBot(
+
     TOKEN,
+
     parse_mode="HTML"
+
 )
 
-# =====================================================
+# ==================================================
 # MEMÓRIA
-# =====================================================
+# ==================================================
 
 estados = {}
 
 cache = {}
 
-# =====================================================
-# FUNÇÕES AUXILIARES
-# =====================================================
-
-def limpar_estado(usuario_id):
-
-    estados.pop(usuario_id, None)
-
+# ==================================================
+# CONTROLE DE ESTADOS
+# ==================================================
 
 def definir_estado(usuario_id, estado):
 
@@ -63,81 +59,280 @@ def obter_estado(usuario_id):
     return estados.get(usuario_id)
 
 
-# =====================================================
-# INICIALIZAÇÃO
-# =====================================================
+def limpar_estado(usuario_id):
+
+    estados.pop(usuario_id, None)
+
+
+# ==================================================
+# CACHE
+# ==================================================
+
+def salvar_cache(chave, valor):
+
+    cache[chave] = valor
+
+
+def obter_cache(chave):
+
+    return cache.get(chave)
+
+
+def limpar_cache(chave):
+
+    cache.pop(chave, None)
+
+
+# ==================================================
+# INICIAR BOT
+# ==================================================
 
 def iniciar_bot():
 
+    print()
+
     print("=" * 60)
+
     print("🐶 PITBULL REWARDS PLATFORM V3")
-    print("🚀 Inicializando Bot...")
+
+    print("🚀 Inicializando...")
+
     print("=" * 60)
+
+    print("✅ Config carregada")
 
     print("✅ Banco conectado")
+
     print("✅ Módulos carregados")
-    print("✅ Bot iniciado")
+
+    print()
 
     bot.infinity_polling(
+
         skip_pending=True,
+
         timeout=30,
+
         long_polling_timeout=30
+
     )
 
-# =====================================================
+# ==================================================
 # /START
-# =====================================================
+# ==================================================
 
 @bot.message_handler(commands=["start"])
 def comando_start(message):
 
     user = message.from_user
-    usuario_id = user.id
 
-    # Cadastra o usuário caso ainda não exista
+    # ----------------------------------------------
+    # CADASTRA O USUÁRIO
+    # ----------------------------------------------
+
     usuarios.cadastrar_usuario(user)
 
-    # Atualiza nome, username e último acesso
+    # ----------------------------------------------
+    # ATUALIZA OS DADOS
+    # ----------------------------------------------
+
     usuarios.atualizar_usuario(user)
 
-    # Limpa qualquer estado pendente
-    limpar_estado(usuario_id)
+    # ----------------------------------------------
+    # LIMPA ESTADOS
+    # ----------------------------------------------
 
-    # Processa link de indicação
-    parametros = message.text.split()
+    limpar_estado(user.id)
 
-    if len(parametros) > 1:
+    # ----------------------------------------------
+    # PROCESSA LINK DE CONVITE
+    # ----------------------------------------------
 
-        argumento = parametros[1]
+    argumentos = message.text.split()
 
-        if argumento.startswith("convite_"):
+    if len(argumentos) > 1:
 
-            codigo = argumento.replace("convite_", "")
+        parametro = argumentos[1]
+
+        if parametro.startswith("convite_"):
+
+            codigo = parametro.replace("convite_", "")
 
             try:
-                indicacoes.registrar_indicacao(
-                    usuario_id,
-                    codigo
+
+                cursor.execute(
+                    """
+                    SELECT id
+                    FROM usuarios
+                    WHERE codigo=?
+                    """,
+                    (codigo,)
                 )
 
+                indicador = cursor.fetchone()
+
+                if indicador:
+
+                    usuarios.registrar_indicacao(
+                        indicador["id"],
+                        user.id
+                    )
+
             except Exception as erro:
-                print(f"Erro ao registrar indicação: {erro}")
+
+                print(
+                    f"Erro ao registrar indicação: {erro}"
+                )
+
+    # ----------------------------------------------
+    # BUSCA O USUÁRIO
+    # ----------------------------------------------
+
+    usuario = usuarios.obter_usuario(user.id)
+
+    # ----------------------------------------------
+    # MENSAGEM
+    # ----------------------------------------------
 
     texto = f"""
-🐶 <b>Bem-vindo ao PITBULL REWARDS PLATFORM</b>
+🐶 <b>{NOME_BOT}</b>
 
-Olá, <b>{user.first_name}</b>!
+Olá,
+<b>{usuario['nome']}</b>
 
-Sua conta foi carregada com sucesso.
+Seja bem-vindo!
 
-Escolha uma opção no menu abaixo.
+Escolha uma opção abaixo.
 """
 
     bot.send_message(
 
-        chat_id=message.chat.id,
+        message.chat.id,
 
-        text=texto,
+        texto,
+
+        reply_markup=teclado.menu_principal()
+
+    )
+
+# ==================================================
+# MENU PRINCIPAL
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "👤 Perfil")
+def menu_perfil(message):
+
+    texto = usuarios.texto_perfil(
+        message.from_user.id
+    )
+
+    bot.send_message(
+
+        message.chat.id,
+
+        texto,
+
+        reply_markup=teclado.menu_principal()
+
+    )
+
+
+# ==================================================
+# CARTEIRA
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "💰 Carteira")
+def menu_carteira(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "💰 Abrindo carteira...",
+
+        reply_markup=teclado.menu_carteira()
+
+    )
+
+
+# ==================================================
+# CONVIDAR AMIGOS
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "👥 Convidar Amigos")
+def menu_convites(message):
+
+    link = usuarios.obter_link_convite(
+        message.from_user.id
+    )
+
+    texto = f"""
+👥 <b>CONVIDE SEUS AMIGOS</b>
+
+Compartilhe seu link:
+
+{link}
+"""
+
+    bot.send_message(
+
+        message.chat.id,
+
+        texto,
+
+        reply_markup=teclado.menu_principal()
+
+    )
+
+
+# ==================================================
+# PIX
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "💳 PIX")
+def menu_pix(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "💳 Área PIX",
+
+        reply_markup=teclado.menu_pix()
+
+    )
+
+
+# ==================================================
+# SAQUES
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "💸 Solicitar Saque")
+def menu_saque(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "💸 Área de Saques",
+
+        reply_markup=teclado.menu_saques()
+
+    )
+
+
+# ==================================================
+# MENU PRINCIPAL
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "🏠 Menu Principal")
+def voltar_menu(message):
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "🏠 Menu Principal",
 
         reply_markup=teclado.menu_principal()
 
