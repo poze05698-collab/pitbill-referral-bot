@@ -243,7 +243,7 @@ def criar_estrutura_usuario(usuario_id):
 
     conn.commit()
 
-        return True
+    return True
  # =====================================================
 # PERFIL
 # =====================================================
