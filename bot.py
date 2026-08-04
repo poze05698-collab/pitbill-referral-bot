@@ -25,6 +25,10 @@ from database import (
 import estado
 import teclado
 
+from config import ADMIN_IDS
+
+from admin import menu as admin_menu
+
 import usuarios
 import carteira
 import pix
@@ -580,3 +584,31 @@ Escolha uma opção abaixo.
 
     )
 
+# ==================================================
+# /ADMIN
+# ==================================================
+
+@bot.message_handler(commands=["admin"])
+def comando_admin(message):
+
+    if message.from_user.id not in ADMIN_IDS:
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "❌ Você não possui permissão."
+
+        )
+
+        return
+
+    bot.send_message(
+
+        message.chat.id,
+
+        "👑 Painel Administrativo",
+
+        reply_markup=admin_menu.menu_admin()
+
+    )
