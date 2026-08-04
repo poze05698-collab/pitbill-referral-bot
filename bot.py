@@ -244,11 +244,15 @@ def menu_perfil(message):
 @bot.message_handler(func=lambda message: message.text == "💰 Carteira")
 def menu_carteira(message):
 
+    texto = carteira.texto_carteira(
+        message.from_user.id
+    )
+
     bot.send_message(
 
         message.chat.id,
 
-        "💰 Abrindo carteira...",
+        texto,
 
         reply_markup=teclado.menu_carteira()
 
@@ -292,11 +296,15 @@ Compartilhe seu link:
 @bot.message_handler(func=lambda message: message.text == "💳 PIX")
 def menu_pix(message):
 
+    texto = pix.texto_pix(
+        message.from_user.id
+    )
+
     bot.send_message(
 
         message.chat.id,
 
-        "💳 Área PIX",
+        texto,
 
         reply_markup=teclado.menu_pix()
 
