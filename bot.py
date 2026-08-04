@@ -11,12 +11,18 @@
 
 import telebot
 
-from config import TOKEN
-
-from database import (
-    cursor
+from config import (
+    TOKEN,
+    NOME_BOT
 )
 
+from database import (
+    conn,
+    cursor,
+    agora
+)
+
+import estado
 import teclado
 
 import usuarios
@@ -30,233 +36,33 @@ import indicacoes
 # ==================================================
 
 bot = telebot.TeleBot(
-
     TOKEN,
-
     parse_mode="HTML"
-
 )
 
 # ==================================================
-# MEMÓRIA
+# CACHE TEMPORÁRIO
 # ==================================================
-
-estados = {}
 
 cache = {}
-
-# ==================================================
-# CONTROLE DE ESTADOS
-# ==================================================
-
-def definir_estado(usuario_id, estado):
-
-    estados[usuario_id] = estado
-
-
-def obter_estado(usuario_id):
-
-    return estados.get(usuario_id)
-
-
-def limpar_estado(usuario_id):
-
-    estados.pop(usuario_id, None)
-
 
 # ==================================================
 # CACHE
 # ==================================================
 
 def salvar_cache(chave, valor):
-
     cache[chave] = valor
 
 
 def obter_cache(chave):
-
     return cache.get(chave)
 
 
 def limpar_cache(chave):
-
     cache.pop(chave, None)
 
 # ==================================================
-# PROCESSAR ESTADOS
-# ==================================================
-
-@bot.message_handler(func=lambda message: True)
-def processar_estados(message):
-
-    estado = obter_estado(
-        message.from_user.id
-    )
-
-    # ------------------------------------------
-    # AGUARDANDO VALOR DO SAQUE
-    # ------------------------------------------
-
-    if estado == "AGUARDANDO_VALOR_SAQUE":
-
-        limpar_estado(
-            message.from_user.id
-        )
-
-        resposta = saques.solicitar_saque(
-
-            usuario_id=message.from_user.id,
-
-            valor=message.text
-
-        )
-
-        bot.send_message(
-
-            message.chat.id,
-
-            resposta,
-
-            reply_markup=teclado.menu_saques()
-
-        )
-
-        return
-
-# ==================================================
-# INICIAR BOT
-# ==================================================
-
-def iniciar_bot():
-
-    print()
-
-    print("=" * 60)
-
-    print("🐶 PITBULL REWARDS PLATFORM V3")
-
-    print("🚀 Inicializando...")
-
-    print("=" * 60)
-
-    print("✅ Config carregada")
-
-    print("✅ Banco conectado")
-
-    print("✅ Módulos carregados")
-
-    print()
-
-    bot.infinity_polling(
-
-        skip_pending=True,
-
-        timeout=30,
-
-        long_polling_timeout=30
-
-    )
-
-# ==================================================
-# /START
-# ==================================================
-
-@bot.message_handler(commands=["start"])
-def comando_start(message):
-
-    user = message.from_user
-
-    # ----------------------------------------------
-    # CADASTRA O USUÁRIO
-    # ----------------------------------------------
-
-    usuarios.cadastrar_usuario(user)
-
-    # ----------------------------------------------
-    # ATUALIZA OS DADOS
-    # ----------------------------------------------
-
-    usuarios.atualizar_usuario(user)
-
-    # ----------------------------------------------
-    # LIMPA ESTADOS
-    # ----------------------------------------------
-
-    limpar_estado(user.id)
-
-    # ----------------------------------------------
-    # PROCESSA LINK DE CONVITE
-    # ----------------------------------------------
-
-    argumentos = message.text.split()
-
-    if len(argumentos) > 1:
-
-        parametro = argumentos[1]
-
-        if parametro.startswith("convite_"):
-
-            codigo = parametro.replace("convite_", "")
-
-            try:
-
-                cursor.execute(
-                    """
-                    SELECT id
-                    FROM usuarios
-                    WHERE codigo=?
-                    """,
-                    (codigo,)
-                )
-
-                indicador = cursor.fetchone()
-
-                if indicador:
-
-                    usuarios.registrar_indicacao(
-                        indicador["id"],
-                        user.id
-                    )
-
-            except Exception as erro:
-
-                print(
-                    f"Erro ao registrar indicação: {erro}"
-                )
-
-    # ----------------------------------------------
-    # BUSCA O USUÁRIO
-    # ----------------------------------------------
-
-    usuario = usuarios.obter_usuario(user.id)
-
-    # ----------------------------------------------
-    # MENSAGEM
-    # ----------------------------------------------
-
-    texto = f"""
-🐶 <b>{NOME_BOT}</b>
-
-Olá,
-<b>{usuario['nome']}</b>
-
-Seja bem-vindo!
-
-Escolha uma opção abaixo.
-"""
-
-    bot.send_message(
-
-        message.chat.id,
-
-        texto,
-
-        reply_markup=teclado.menu_principal()
-
-    )
-
-# ==================================================
-# MENU PRINCIPAL
+# PERFIL
 # ==================================================
 
 @bot.message_handler(func=lambda message: message.text == "👤 Perfil")
@@ -268,9 +74,9 @@ def menu_perfil(message):
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id=message.chat.id,
 
-        texto,
+        text=texto,
 
         reply_markup=teclado.menu_principal()
 
@@ -290,41 +96,11 @@ def menu_carteira(message):
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id=message.chat.id,
 
-        texto,
+        text=texto,
 
         reply_markup=teclado.menu_carteira()
-
-    )
-
-
-# ==================================================
-# CONVIDAR AMIGOS
-# ==================================================
-
-@bot.message_handler(func=lambda message: message.text == "👥 Convidar Amigos")
-def menu_convites(message):
-
-    link = usuarios.obter_link_convite(
-        message.from_user.id
-    )
-
-    texto = f"""
-👥 <b>CONVIDE SEUS AMIGOS</b>
-
-Compartilhe seu link:
-
-{link}
-"""
-
-    bot.send_message(
-
-        message.chat.id,
-
-        texto,
-
-        reply_markup=teclado.menu_principal()
 
     )
 
@@ -342,11 +118,73 @@ def menu_pix(message):
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id=message.chat.id,
 
-        texto,
+        text=texto,
 
         reply_markup=teclado.menu_pix()
+
+    )
+
+
+# ==================================================
+# CONVIDAR AMIGOS
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "👥 Convidar Amigos")
+def menu_indicacoes(message):
+
+    link = usuarios.obter_link_convite(
+        message.from_user.id
+    )
+
+    total = usuarios.total_indicacoes(
+        message.from_user.id
+    )
+
+    pendentes = usuarios.indicacoes_pendentes(
+        message.from_user.id
+    )
+
+    aprovadas = usuarios.indicacoes_aprovadas(
+        message.from_user.id
+    )
+
+    texto = f"""
+👥 <b>INDICAÇÕES</b>
+
+━━━━━━━━━━━━━━━━━━
+
+🔗 Seu link
+
+<code>{link}</code>
+
+━━━━━━━━━━━━━━━━━━
+
+👥 Total
+
+{total}
+
+⏳ Pendentes
+
+{pendentes}
+
+✅ Aprovadas
+
+{aprovadas}
+
+━━━━━━━━━━━━━━━━━━
+
+Compartilhe seu link e ganhe recompensas.
+"""
+
+    bot.send_message(
+
+        chat_id=message.chat.id,
+
+        text=texto,
+
+        reply_markup=teclado.menu_principal()
 
     )
 
@@ -364,11 +202,33 @@ def menu_saque(message):
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id=message.chat.id,
 
-        texto,
+        text=texto,
 
         reply_markup=teclado.menu_saques()
+
+    )
+
+
+# ==================================================
+# MENU PRINCIPAL
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "🏠 Menu Principal")
+def voltar_menu(message):
+
+    usuario = usuarios.obter_usuario(
+        message.from_user.id
+    )
+
+    bot.send_message(
+
+        chat_id=message.chat.id,
+
+        text=f"🏠 Bem-vindo novamente, <b>{usuario['nome']}</b>!",
+
+        reply_markup=teclado.menu_principal()
 
     )
 
@@ -379,9 +239,12 @@ def menu_saque(message):
 @bot.message_handler(func=lambda message: message.text == "💸 Novo Saque")
 def novo_saque(message):
 
-    definir_estado(
+    estado.definir_estado(
+
         message.from_user.id,
+
         "AGUARDANDO_VALOR_SAQUE"
+
     )
 
     bot.send_message(
@@ -389,20 +252,30 @@ def novo_saque(message):
         message.chat.id,
 
         """
-💸 Informe o valor do saque.
+💸 <b>NOVO SAQUE</b>
+
+━━━━━━━━━━━━━━━━━━
+
+Digite o valor que deseja sacar.
 
 Exemplo:
 
 20
 50
 100
-"""
+
+Para cancelar basta enviar:
+
+cancelar
+""",
+
+        reply_markup=teclado.menu_saques()
 
     )
 
 
 # ==================================================
-# HISTÓRICO
+# HISTÓRICO DE SAQUES
 # ==================================================
 
 @bot.message_handler(func=lambda message: message.text == "📜 Histórico")
@@ -418,7 +291,9 @@ def historico_saques(message):
 
             message.chat.id,
 
-            "Você ainda não possui saques."
+            "Você ainda não possui saques.",
+
+            reply_markup=teclado.menu_saques()
 
         )
 
@@ -428,31 +303,127 @@ def historico_saques(message):
 
     for saque in lista[:10]:
 
-        texto += saques.texto_saque(
-            saque
-        )
-
+        texto += saques.texto_saque(saque)
         texto += "\n"
 
     bot.send_message(
 
         message.chat.id,
 
-        texto
+        texto,
+
+        reply_markup=teclado.menu_saques()
 
     )
 
 
 # ==================================================
-# VOLTAR CARTEIRA
+# CADASTRAR PIX
 # ==================================================
 
-@bot.message_handler(func=lambda message: message.text == "⬅️ Carteira")
-def voltar_carteira(message):
+@bot.message_handler(func=lambda message: message.text == "➕ Cadastrar PIX")
+def cadastrar_pix(message):
 
-    texto = carteira.texto_carteira(
+    estado.definir_estado(
+
+        message.from_user.id,
+
+        "AGUARDANDO_PIX"
+
+    )
+
+    bot.send_message(
+
+        message.chat.id,
+
+        """
+💳 <b>CADASTRAR PIX</b>
+
+━━━━━━━━━━━━━━━━━━
+
+Envie sua chave PIX.
+
+Pode ser:
+
+• CPF
+
+• E-mail
+
+• Telefone
+
+• Chave Aleatória
+""",
+
+        reply_markup=teclado.menu_pix()
+
+    )
+
+
+# ==================================================
+# REMOVER PIX
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "🗑 Remover PIX")
+def remover_pix(message):
+
+    if pix.remover_pix(message.from_user.id):
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "✅ PIX removido com sucesso.",
+
+            reply_markup=teclado.menu_pix()
+
+        )
+
+    else:
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "❌ Você não possui PIX cadastrado.",
+
+            reply_markup=teclado.menu_pix()
+
+        )
+
+
+# ==================================================
+# HISTÓRICO DA CARTEIRA
+# ==================================================
+
+@bot.message_handler(func=lambda message: message.text == "📄 Extrato")
+def extrato(message):
+
+    historico = carteira.historico_resumido(
         message.from_user.id
     )
+
+    if not historico:
+
+        bot.send_message(
+
+            message.chat.id,
+
+            "Nenhuma movimentação encontrada.",
+
+            reply_markup=teclado.menu_carteira()
+
+        )
+
+        return
+
+    texto = "📄 <b>ÚLTIMAS MOVIMENTAÇÕES</b>\n\n"
+
+    for item in historico:
+
+        texto += (
+            f"{item['tipo']} | "
+            f"R$ {float(item['valor']):.2f}\n"
+        )
 
     bot.send_message(
 
@@ -465,20 +436,147 @@ def voltar_carteira(message):
     )
 
 # ==================================================
-# MENU PRINCIPAL
+# PROCESSADOR DE ESTADOS
 # ==================================================
 
-@bot.message_handler(func=lambda message: message.text == "🏠 Menu Principal")
-def voltar_menu(message):
+@bot.message_handler(func=lambda message: True)
+def mensagens(message):
+
+    # Processa estados temporários
+    if estado.processar_estado(bot, message):
+        return
+
+    # Caso a mensagem não pertença a nenhum estado,
+    # ela simplesmente será ignorada por enquanto.
+    return
+ 
+
+# ==================================================
+# INICIAR BOT
+# ==================================================
+
+def iniciar_bot():
+
+    print("=" * 60)
+    print(f"🐶 {NOME_BOT}")
+    print("🚀 Inicializando...")
+    print("=" * 60)
+
+    print("✅ Config carregada")
+    print("✅ Banco conectado")
+    print("✅ Módulos carregados")
+    print("✅ Bot iniciado")
+
+    bot.infinity_polling(
+        skip_pending=True,
+        timeout=30,
+        long_polling_timeout=30
+    )
+
+# ==================================================
+# /START
+# ==================================================
+
+@bot.message_handler(commands=["start"])
+def comando_start(message):
+
+    user = message.from_user
+
+    # =============================================
+    # CADASTRA O USUÁRIO
+    # =============================================
+
+    usuarios.cadastrar_usuario(user)
+
+    # =============================================
+    # ATUALIZA DADOS
+    # =============================================
+
+    usuarios.atualizar_usuario(user)
+
+    # =============================================
+    # LIMPA QUALQUER ESTADO
+    # =============================================
+
+    estado.limpar_estado(user.id)
+
+    # =============================================
+    # PROCESSA LINK DE INDICAÇÃO
+    # =============================================
+
+    argumentos = message.text.split()
+
+    if len(argumentos) > 1:
+
+        parametro = argumentos[1]
+
+        if parametro.startswith("convite_"):
+
+            codigo = parametro.replace(
+                "convite_",
+                ""
+            )
+
+            cursor.execute(
+                """
+                SELECT id
+                FROM usuarios
+                WHERE codigo=?
+                """,
+                (codigo,)
+            )
+
+            indicador = cursor.fetchone()
+
+            if indicador:
+
+                try:
+
+                    usuarios.registrar_indicacao(
+
+                        indicador["id"],
+
+                        user.id
+
+                    )
+
+                except Exception as erro:
+
+                    print(
+                        "Erro na indicação:",
+                        erro
+                    )
+
+    # =============================================
+    # BUSCA O USUÁRIO
+    # =============================================
+
+    usuario = usuarios.obter_usuario(
+        user.id
+    )
+
+    # =============================================
+    # MENSAGEM
+    # =============================================
+
+    texto = f"""
+🐶 <b>{NOME_BOT}</b>
+
+Olá,
+<b>{usuario['nome']}</b>!
+
+Seja bem-vindo à plataforma.
+
+Escolha uma opção abaixo.
+"""
 
     bot.send_message(
 
-        message.chat.id,
+        chat_id=message.chat.id,
 
-        "🏠 Menu Principal",
+        text=texto,
 
         reply_markup=teclado.menu_principal()
 
     )
 
-    
