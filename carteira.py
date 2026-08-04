@@ -65,7 +65,9 @@ def saldo_bloqueado(usuario_id):
     if carteira is None:
         return 0
 
-    return float(carteira["saldo_bloqueado"])# ==================================================
+    return float(carteira["saldo_bloqueado"])
+    
+# ==================================================
 # ADICIONAR SALDO
 # ==================================================
 
