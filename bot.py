@@ -7,177 +7,140 @@ BOT PRINCIPAL
 
 import telebot
 
-# ==================================================
-# CONFIG
-# ==================================================
+from config import TOKEN
 
-from config import (
-    TOKEN,
-    OWNER_ID,
-    NOME_BOT
-)
+import usuarios
+import carteira
+import pix
+import saques
+import indicacoes
 
-# ==================================================
-# DATABASE
-# ==================================================
+import grupo
+import estado
+import teclado
+import utils
 
-from database import (
-    conn,
-    cursor,
-    agora
-)
+from admin import menu as admin_menu
+from admin import usuarios as admin_usuarios
+from admin import saques as admin_saques
+from admin import indicacoes as admin_indicacoes
+from admin import estatisticas as admin_estatisticas
+from admin import broadcast as admin_broadcast
 
-# ==================================================
-# TECLADOS
-# ==================================================
-
-from teclado import (
-    menu_principal,
-    menu_admin,
-    menu_administradores
-)
-
-# ==================================================
-# USUÁRIOS
-# ==================================================
-
-from usuarios import (
-
-    cadastrar_usuario,
-
-    atualizar_usuario,
-
-    obter_usuario,
-
-    enviar_menu,
-
-    texto_perfil,
-
-    obter_link_convite,
-
-    registrar_indicacao
-
-)
-
-# ==================================================
-# CARTEIRA
-# ==================================================
-
-from carteira import (
-
-    texto_carteira,
-
-    adicionar_saldo,
-
-    remover_saldo
-
-)
-
-# ==================================================
-# PIX
-# ==================================================
-
-from pix import (
-
-    texto_pix,
-
-    salvar_pix,
-
-    validar_pix
-
-)
-
-# ==================================================
-# SAQUES
-# ==================================================
-
-from saques import (
-
-    solicitar_saque
-
-)
-
-# ==================================================
-# INDICAÇÕES
-# ==================================================
-
-from indicacoes import (
-
-    listar_indicados,
-
-    listar_pendentes
-
-)
-
-# ==================================================
-# ADMIN
-# ==================================================
-
-from admin.sistema import (
-    criar_owner
-)
-
-from admin.menu import (
-    menu_admin_principal
-)
-
-from admin.usuarios import (
-
-    menu_admin_usuarios,
-
-    buscar_usuario_admin,
-
-    texto_usuario_admin
-
-)
-
-from admin.saques import *
-
-from admin.indicacoes import *
-
-from admin.config import *
-
-from admin.broadcast import *
-
-from admin.logs import *
-
-from admin.estatisticas import *
-
-from admin.antifraude import *
-
-from admin.cargos import *
-
-# ==================================================
+# =====================================================
 # BOT
-# ==================================================
+# =====================================================
 
 bot = telebot.TeleBot(
-
     TOKEN,
-
     parse_mode="HTML"
-
 )
 
-# ==================================================
-# ESTADOS
-# ==================================================
+# =====================================================
+# MEMÓRIA
+# =====================================================
 
 estados = {}
 
-# ==================================================
-# CACHE
-# ==================================================
-
 cache = {}
 
-# ==================================================
-# CONSTANTES
-# ==================================================
+# =====================================================
+# FUNÇÕES AUXILIARES
+# =====================================================
 
-VERSAO = "3.0"
+def limpar_estado(usuario_id):
 
-print("=" * 60)
-print("🐶 PITBULL REWARDS PLATFORM")
-print(f"Versão {VERSAO}")
-print("=" * 60)
+    estados.pop(usuario_id, None)
+
+
+def definir_estado(usuario_id, estado):
+
+    estados[usuario_id] = estado
+
+
+def obter_estado(usuario_id):
+
+    return estados.get(usuario_id)
+
+
+# =====================================================
+# INICIALIZAÇÃO
+# =====================================================
+
+def iniciar_bot():
+
+    print("=" * 60)
+    print("🐶 PITBULL REWARDS PLATFORM V3")
+    print("🚀 Inicializando Bot...")
+    print("=" * 60)
+
+    print("✅ Banco conectado")
+    print("✅ Módulos carregados")
+    print("✅ Bot iniciado")
+
+    bot.infinity_polling(
+        skip_pending=True,
+        timeout=30,
+        long_polling_timeout=30
+    )
+
+# =====================================================
+# /START
+# =====================================================
+
+@bot.message_handler(commands=["start"])
+def comando_start(message):
+
+    user = message.from_user
+    usuario_id = user.id
+
+    # Cadastra o usuário caso ainda não exista
+    usuarios.cadastrar_usuario(user)
+
+    # Atualiza nome, username e último acesso
+    usuarios.atualizar_usuario(user)
+
+    # Limpa qualquer estado pendente
+    limpar_estado(usuario_id)
+
+    # Processa link de indicação
+    parametros = message.text.split()
+
+    if len(parametros) > 1:
+
+        argumento = parametros[1]
+
+        if argumento.startswith("convite_"):
+
+            codigo = argumento.replace("convite_", "")
+
+            try:
+                indicacoes.registrar_indicacao(
+                    usuario_id,
+                    codigo
+                )
+
+            except Exception as erro:
+                print(f"Erro ao registrar indicação: {erro}")
+
+    texto = f"""
+🐶 <b>Bem-vindo ao PITBULL REWARDS PLATFORM</b>
+
+Olá, <b>{user.first_name}</b>!
+
+Sua conta foi carregada com sucesso.
+
+Escolha uma opção no menu abaixo.
+"""
+
+    bot.send_message(
+
+        chat_id=message.chat.id,
+
+        text=texto,
+
+        reply_markup=teclado.menu_principal()
+
+    )
+
+    
