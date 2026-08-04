@@ -56,7 +56,7 @@ def cadastrar_usuario(user):
     )
 
     if cursor.fetchone():
-        return
+    return False
 
     codigo = gerar_codigo()
 
@@ -117,42 +117,46 @@ def cadastrar_usuario(user):
 
 def atualizar_usuario(user):
 
-    cursor.execute(
+    data = agora()
 
-        """
-        UPDATE usuarios
+cursor.execute(
 
-        SET
+    """
+    UPDATE usuarios
 
-        nome=?,
+    SET
 
-        username=?,
+    nome=?,
 
-        ultimo_login=?,
+    username=?,
 
-        updated_at=?
+    ultimo_login=?,
 
-        WHERE id=?
+    updated_at=?
 
-        """,
+    WHERE id=?
 
-        (
+    """,
 
-            user.first_name,
+    (
 
-            user.username,
+        user.first_name,
 
-            agora(),
+        user.username,
 
-            agora(),
+        data,
 
-            user.id
+        data,
 
-        )
+        user.id
 
     )
 
-    conn.commit()
+)
+
+conn.commit()
+
+return True
  # =====================================================
 # BUSCAR USUÁRIO
 # =====================================================
@@ -254,6 +258,8 @@ def criar_estrutura_usuario(usuario_id):
     ))
 
     conn.commit()
+
+return True
  # =====================================================
 # PERFIL
 # =====================================================
@@ -268,13 +274,19 @@ def texto_perfil(usuario_id):
 
     usuario = cursor.fetchone()
 
-    cursor.execute("""
-    SELECT *
-    FROM carteira
-    WHERE usuario_id=?
-    """,(usuario_id,))
+cursor.execute("""
+SELECT *
+FROM carteira
+WHERE usuario_id=?
+""",(usuario_id,))
 
-    carteira = cursor.fetchone()
+carteira = cursor.fetchone()
+
+if usuario is None:
+    return "❌ Usuário não encontrado."
+
+if carteira is None:
+    return "❌ Carteira não encontrada."
 
     texto = f"""
 👤 <b>MEU PERFIL</b>
