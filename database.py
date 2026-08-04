@@ -619,6 +619,40 @@ ON grupo(usuario_id)
 """)
 
 # =====================================================
+# CANAL
+# =====================================================
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS canal(
+
+    usuario_id INTEGER PRIMARY KEY,
+
+    canal_id TEXT,
+
+    canal_nome TEXT,
+
+    entrou INTEGER DEFAULT 0,
+
+    verificado INTEGER DEFAULT 0,
+
+    data_entrada TEXT,
+
+    data_verificacao TEXT,
+
+    ultima_consulta TEXT,
+
+    FOREIGN KEY(usuario_id)
+    REFERENCES usuarios(id)
+
+)
+""")
+
+cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_canal_usuario
+ON canal(usuario_id)
+""")
+
+# =====================================================
 # ANTI FRAUDE
 # =====================================================
 
@@ -859,33 +893,6 @@ CREATE TABLE IF NOT EXISTS bonus_diario(
 )
 """)
 
-
-# =====================================================
-# BROADCAST
-# =====================================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS broadcast(
-
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-    admin_id INTEGER,
-
-    mensagem TEXT,
-
-    usuarios_enviados INTEGER DEFAULT 0,
-
-    usuarios_recebidos INTEGER DEFAULT 0,
-
-    status TEXT DEFAULT 'PENDENTE',
-
-    created_at TEXT,
-
-    FOREIGN KEY(admin_id)
-    REFERENCES administradores(usuario_id)
-
-)
-""")
 
 
 # =====================================================
