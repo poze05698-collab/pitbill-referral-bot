@@ -56,7 +56,7 @@ def cadastrar_usuario(user):
     )
 
     if cursor.fetchone():
-    return False
+        return False
 
     codigo = gerar_codigo()
 
@@ -119,44 +119,28 @@ def atualizar_usuario(user):
 
     data = agora()
 
-cursor.execute(
-
-    """
-    UPDATE usuarios
-
-    SET
-
-    nome=?,
-
-    username=?,
-
-    ultimo_login=?,
-
-    updated_at=?
-
-    WHERE id=?
-
-    """,
-
-    (
-
-        user.first_name,
-
-        user.username,
-
-        data,
-
-        data,
-
-        user.id
-
+    cursor.execute(
+        """
+        UPDATE usuarios
+        SET
+            nome=?,
+            username=?,
+            ultimo_login=?,
+            updated_at=?
+        WHERE id=?
+        """,
+        (
+            user.first_name,
+            user.username,
+            data,
+            data,
+            user.id
+        )
     )
 
-)
+    conn.commit()
 
-conn.commit()
-
-return True
+    return True
  # =====================================================
 # BUSCAR USUÁRIO
 # =====================================================
@@ -259,7 +243,7 @@ def criar_estrutura_usuario(usuario_id):
 
     conn.commit()
 
-return True
+        return True
  # =====================================================
 # PERFIL
 # =====================================================
@@ -267,26 +251,26 @@ return True
 def texto_perfil(usuario_id):
 
     cursor.execute("""
-    SELECT *
-    FROM usuarios
-    WHERE id=?
-    """,(usuario_id,))
+        SELECT *
+        FROM usuarios
+        WHERE id=?
+    """, (usuario_id,))
 
     usuario = cursor.fetchone()
 
-cursor.execute("""
-SELECT *
-FROM carteira
-WHERE usuario_id=?
-""",(usuario_id,))
+    cursor.execute("""
+        SELECT *
+        FROM carteira
+        WHERE usuario_id=?
+    """, (usuario_id,))
 
-carteira = cursor.fetchone()
+    carteira = cursor.fetchone()
 
-if usuario is None:
-    return "❌ Usuário não encontrado."
+    if usuario is None:
+        return "❌ Usuário não encontrado."
 
-if carteira is None:
-    return "❌ Carteira não encontrada."
+    if carteira is None:
+        return "❌ Carteira não encontrada."
 
     texto = f"""
 👤 <b>MEU PERFIL</b>
@@ -294,30 +278,30 @@ if carteira is None:
 ━━━━━━━━━━━━━━
 
 🆔 <b>ID:</b>
-<code>{usuario["id"]}</code>
+<code>{usuario['id']}</code>
 
 👤 <b>Nome:</b>
-{usuario["nome"]}
+{usuario['nome']}
 
 🏷 <b>Usuário:</b>
-@{usuario["username"] if usuario["username"] else "-"}
+@{usuario['username'] if usuario['username'] else "-"}
 
 🎁 <b>Código:</b>
-<code>{usuario["codigo"]}</code>
+<code>{usuario['codigo']}</code>
 
 ━━━━━━━━━━━━━━
 
-⭐ XP: {usuario["xp"]}
+⭐ XP: {usuario['xp']}
 
-🏆 Nível: {usuario["nivel"]}
+🏆 Nível: {usuario['nivel']}
 
 ━━━━━━━━━━━━━━
 
 💰 Saldo:
-R$ {carteira["saldo"]:.2f}
+R$ {carteira['saldo']:.2f}
 
 ⏳ Pendente:
-R$ {carteira["saldo_pendente"]:.2f}
+R$ {carteira['saldo_pendente']:.2f}
 
 ━━━━━━━━━━━━━━
 """
