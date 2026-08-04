@@ -403,3 +403,58 @@ R$ {float(saque['valor']):.2f}
 
 ━━━━━━━━━━━━━━━━━━
 """
+
+# ==================================================
+# TELA DE SAQUES
+# ==================================================
+
+def texto_saques(usuario_id):
+
+    saques = listar_saques(usuario_id)
+
+    pix = obter_pix(usuario_id)
+
+    saldo_disponivel = saldo(usuario_id)
+
+    chave = "-"
+
+    if pix:
+        chave = pix["chave"]
+
+    texto = f"""
+💸 <b>SAQUES</b>
+
+━━━━━━━━━━━━━━━━━━
+
+💰 Saldo disponível
+
+R$ {saldo_disponivel:.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+💳 PIX
+
+<code>{chave}</code>
+
+━━━━━━━━━━━━━━━━━━
+
+📉 Valor mínimo
+
+R$ {VALOR_MINIMO_SAQUE:.2f}
+
+📈 Valor máximo
+
+R$ {VALOR_MAXIMO_SAQUE:.2f}
+
+━━━━━━━━━━━━━━━━━━
+
+📄 Total de solicitações
+
+{len(saques)}
+
+━━━━━━━━━━━━━━━━━━
+
+Escolha uma opção abaixo.
+"""
+
+    return texto
