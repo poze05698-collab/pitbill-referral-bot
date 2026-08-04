@@ -71,10 +71,12 @@ def buscar_username(username):
 
 def usuario_existe(usuario_id):
 
-    return buscar_usuario_admin(usuario_id) is not None# ==================================================
+   return buscar_usuario_admin(usuario_id) is not None
+
+
+# ==================================================
 # PERFIL ADMIN
 # ==================================================
-
 def texto_usuario_admin(usuario_id):
 
     usuario = buscar_usuario_admin(usuario_id)
