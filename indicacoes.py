@@ -142,10 +142,12 @@ def listar_pendentes():
 
     """)
 
-    return cursor.fetchall()from carteira import (
+    from carteira import (
     adicionar_saldo_pendente,
     transferir_pendente_para_saldo
-)# ==================================================
+)
+    
+# ==================================================
 # APROVAR INDICAÇÃO
 # ==================================================
 
